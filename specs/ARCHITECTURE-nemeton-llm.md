@@ -319,10 +319,12 @@ marketplace renommée, plugin réinstallé.
 1. **Fait** : API hors interface et MCP stdio dans nemetonshiny ; nemetonclaude
    0.7.x (vues, serveur distant OAuth, plugin) ; suivi des calculs par VICTOR.
 2. **Fait (24/10/2026, #18)** : renommage en `nemetonmcp` 0.8.0, arborescence
-   `r/`, `clients/claude/`, `deploiement/`. Reste à retrouver où tourne le
-   connecteur distant (502).
+   `r/`, `clients/claude/`, `deploiement/`. Le 502 est expliqué : le
+   connecteur claude.ai « nemeton » pointe encore vers le tunnel
+   `trycloudflare` de l'essai du 7 octobre, arrêté depuis. Il ne tourne nulle
+   part ; il reviendra avec la mise en service du VPS (étape 4).
 3. **Fiche et voie rapide** : outil `fiche_projet` tiré de l'en-tête de
-   l'Atlas, avec un bloc `display_report` ; `nemeton_fiche` et accusé vocal
+   l'Atlas, avec un bloc `display_report` (fait, en cache dans `fiche.json`) ; `nemeton_fiche` et accusé vocal
    dans VICTOR ; journal des durées.
 4. **Mise en service du VPS** : compose de production, migration des projets,
    droits par projet, contrôle d'accès aux fichiers statiques, sauvegardes,
@@ -346,4 +348,4 @@ Rien de tout cela ne modifie le dépôt `nemeton`, sauf les caches par commune,
 - [ ] Partage par personne, par groupe, ou les deux ? Combien d'utilisateurs simultanés au plus ?
 - [ ] Shiny retiré à terme, ou atelier conservé (recommandé) ?
 - [ ] Le Chat reste-t-il une cible, sachant qu'aucune source ne confirme son affichage des MCP Apps ?
-- [ ] Où tourne le connecteur distant qui répond 502 (le `Caddyfile` garde l'exemple `nemeton.example.org`) ?
+- [x] Où tourne le connecteur distant qui répond 502 ? Nulle part : tunnel d'essai du 7/10 arrêté ; à retirer de claude.ai ou à repointer vers le VPS.

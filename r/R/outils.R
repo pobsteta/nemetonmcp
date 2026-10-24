@@ -19,7 +19,8 @@
 #'   `annuler_calcul`, `generer_rapport`, `exporter_gpkg`, `url_app`,
 #'   `appliquer_ugf`, `croiser_onf`) and the
 #'   lot 1 tools (`chercher_commune`, `parcelles_commune`, `creer_projet`,
-#'   `vue_atlas`, `contexte_carto`, `detail_indicateur`).
+#'   `vue_atlas`, `contexte_carto`, `detail_indicateur`), `fiche_projet`
+#'   and the action plan tools.
 #' @export
 outils_mcp <- function() {
   t <- ellmer::type_string
@@ -76,6 +77,11 @@ outils_mcp <- function() {
            tolerance_m = num("Simplification tolerance in metres (default 1).", required = FALSE),
            bruts = b("Also include raw indicator values (default false).", required = FALSE),
            inclure_geojson = b("Also return the GeoJSON inline when under 2 MB (default false).", required = FALSE)),
+      lecture = TRUE),
+    .outil(fiche_projet, "fiche_projet",
+      "Sheet of a computed project, for quick answers: global score, NDP level, confidence, the 12 family scores sorted, strengths and weaknesses, action plan summary (counts by status, next actions), computation state, a one-sentence summary (texte), and a display_report block (title, kpis, chart, table, markdown) to pass as is to a dashboard tool. Cached in fiche.json until the indicators or the plan change.",
+      list(projet = projet_arg, langue = langue_arg,
+           actualiser = b("Rebuild the sheet even if the cached one is current (default false).", required = FALSE)),
       lecture = TRUE),
     .outil(contexte_carto, "contexte_carto",
       "Vector map context of a project (BD TOPO roads, rivers, water bodies) clipped to the project, as contexte.geojson to join to the artifact (external tiles are blocked in artifacts).",

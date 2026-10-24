@@ -12,7 +12,8 @@ A list of \code{ellmer::tool()} definitions: the tools of nemetonshiny
 \code{annuler_calcul}, \code{generer_rapport}, \code{exporter_gpkg}, \code{url_app},
 \code{appliquer_ugf}, \code{croiser_onf}) and the
 lot 1 tools (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_projet},
-\code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}).
+\code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}), \code{fiche_projet}
+and the action plan tools.
 }
 \description{
 MCP tools of nemetonmcp

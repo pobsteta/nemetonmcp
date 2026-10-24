@@ -31,6 +31,7 @@ Référence : `specs/BRIEF-visualisation-nemeton-claude.md`.
 | veut voir, explorer ou partager les résultats d'un projet calculé | **Atlas** (`vues/atlas/`) | `vue_atlas`, `contexte_carto` (facultatif), `detail_indicateur` (depuis la vue) |
 | lance ou attend un calcul | **Calcul** (`vues/calcul/`) | `lancer_calcul`, `etat_calcul` (suivi depuis la vue), `annuler_calcul` |
 | veut planifier, valider ou partager des actions sylvicoles | **Plan d'actions** (`vues/plan/`) | `plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus` |
+| pose une question rapide sur un projet calculé (« où en est Couchey ? », « ses points faibles ? ») | conversation | `fiche_projet` : score, NDP, familles classées, points forts et faibles, plan résumé, état du calcul, phrase `texte` ; relue en cache tant que rien ne change. Ouvrir l'Atlas seulement si l'utilisateur veut la carte |
 | veut un rapport, un GeoPackage | conversation | `generer_rapport` (pièce officielle, PDF), `exporter_gpkg` (connecteur distant : lien `urls` ; avec `zip = true`, le GeoPackage zippé en base64, que la vue Atlas propose au téléchargement comme le CSV) |
 | veut des UGF numérotées comme les parcelles forestières ONF | conversation | `croiser_onf`, puis `lancer_calcul` (voir « UGF depuis le parcellaire ONF ») |
 | veut éditer les unités de gestion | application nemetonshiny | `url_app` ; `appliquer_ugf` pour un découpage déjà prêt en fichier |
