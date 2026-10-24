@@ -1,4 +1,4 @@
-# nemetonClaude
+# nemetonmcp
 
 <!-- badges: start -->
 [![CI](https://github.com/pobsteta/nemetonclaude/actions/workflows/ci.yml/badge.svg)](https://github.com/pobsteta/nemetonclaude/actions/workflows/ci.yml)
