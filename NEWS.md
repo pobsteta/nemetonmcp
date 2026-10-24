@@ -1,3 +1,7 @@
+# nemetonmcp 0.8.2 (2026-10-24)
+
+- Ajoute l'outil fiche_projet (fiche en cache et bloc display_report) (#19)
+
 # nemetonmcp 0.8.1 (2026-10-24)
 
 - Document d'architecture Nemeton × LLM (#17)

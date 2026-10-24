@@ -1,6 +1,6 @@
 {
   "name": "nemetonmcp-vues",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "type": "module",
   "description": "Moteur et vues nemeton pour les artéfacts Claude : outils de fabrication et tests.",
