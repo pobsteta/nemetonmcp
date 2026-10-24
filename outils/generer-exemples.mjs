@@ -1,16 +1,16 @@
 // Génère les données FICTIVES des vues (aucune donnée réelle) :
-//   vues/exemples/selection/{selection.json, commune.geojson, sections.geojson, parcelles.geojson}
-//   vues/exemples/atlas/{atlas.geojson, contexte.geojson}
-//   vues/exemples/calcul/calcul.json
-//   vues/exemples/plan/{plan.json, plan.geojson, contexte.geojson}
-// Le catalogue des familles (vues/exemples/catalogue.json) est celui du cœur
+//   clients/claude/vues/exemples/selection/{selection.json, commune.geojson, sections.geojson, parcelles.geojson}
+//   clients/claude/vues/exemples/atlas/{atlas.geojson, contexte.geojson}
+//   clients/claude/vues/exemples/calcul/calcul.json
+//   clients/claude/vues/exemples/plan/{plan.json, plan.geojson, contexte.geojson}
+// Le catalogue des familles (clients/claude/vues/exemples/catalogue.json) est celui du cœur
 // nemeton (R/indicator-config.R) ; les valeurs, elles, sont tirées au hasard.
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ici = dirname(fileURLToPath(import.meta.url));
-const ex = join(ici, "../vues/exemples");
+const ex = join(ici, "../clients/claude/vues/exemples");
 
 let graine = 20261006;
 const alea = () => ((graine = (graine * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -268,4 +268,4 @@ writeFileSync(join(cal, "calcul.json"), JSON.stringify({
   }
 }, null, 1) + "\n");
 copyFileSync(join(at, "contexte.geojson"), join(pl, "contexte.geojson"));
-console.log(`${propres.length} parcelles, ${features.length} UG d'exemple écrites dans vues/exemples/.`);
+console.log(`${propres.length} parcelles, ${features.length} UG d'exemple écrites dans clients/claude/vues/exemples/.`);

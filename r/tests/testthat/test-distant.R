@@ -9,12 +9,12 @@ jwk <- function(k, kid) {
 }
 jwks <- function(forcer = FALSE) list(jwk(cle, "k1"))
 
-config_test <- function(...) {
+config_test <- function(..., audience = "nemeton-claude") {
   racine <- withr::local_tempdir(.local_envir = parent.frame(2))
   dir.create(file.path(racine, "projets"))
   dir.create(file.path(racine, "vues"))
   c(config_distant(url = "https://nemeton.test", issuer = "https://auth.test/realms/nemeton",
-                   audience = "nemeton-claude", secret = "secret-de-test",
+                   audience = audience, secret = "secret-de-test",
                    roles_lecture = c("lecteur", "gestionnaire", "admin"),
                    roles_ecriture = c("gestionnaire", "admin"), ...),
     list(racine_projets = file.path(racine, "projets"), racine_vues = file.path(racine, "vues")))
@@ -43,7 +43,7 @@ test_that("le verificateur accepte un jeton valide et rend l'utilisateur", {
 
 test_that("le verificateur refuse signature, emetteur, audience, expiration et forme", {
   v <- .verificateur_jwt(config_test(), cles = jwks)
-  refuse <- function(j) expect_error(v(j), class = "nemetonclaude_jeton_refuse")
+  refuse <- function(j) expect_error(v(j), class = "nemetonmcp_jeton_refuse")
   refuse(jeton(k = autre_cle))
   refuse(jeton(iss = "https://ailleurs.test/realms/x"))
   refuse(jeton(aud = "account"))
@@ -101,7 +101,7 @@ test_that("un lien signe sert son fichier, et seulement lui", {
   expect_null(.fichier_du_jeton(vieux, cfg))
   dehors <- withr::local_tempfile(fileext = ".txt")
   writeLines("x", dehors)
-  expect_error(.lien(dehors, cfg), class = "nemetonclaude_lien_refuse")
+  expect_error(.lien(dehors, cfg), class = "nemetonmcp_lien_refuse")
   # Un jeton correctement signe qui remonte hors de la racine est refuse.
   charge <- jose::base64url_encode(charToRaw(.json(list(r = 2, f = "../../../etc/passwd", e = 4e9))))
   expect_null(.fichier_du_jeton(paste0(charge, ".", .signer(charge, cfg$secret)), cfg))
@@ -143,7 +143,7 @@ faux_mcp <- function(cfg, vu = new.env()) {
   function(req) {
     m <- jsonlite::fromJSON(rawToChar(req$rook.input$read()), simplifyVector = FALSE)
     vu$projet_dir <- getOption("nemeton.app_options")$project_dir
-    vu$vues <- getOption("nemetonclaude.dossier_vues")
+    vu$vues <- getOption("nemetonmcp.dossier_vues")
     res <- if (identical(m$method, "tools/list")) {
       list(tools = lapply(c(.OUTILS_LECTURE, .OUTILS_ECRITURE, "outil_inconnu"), function(n) list(name = n)))
     } else {
@@ -227,7 +227,7 @@ test_that("en mode isolation, chaque utilisateur a ses dossiers, restaures apres
   expect_equal(vu$projet_dir, file.path(cfg$racine_projets, "a_b_c"))
   expect_equal(vu$vues, file.path(cfg$racine_vues, "a_b_c"))
   expect_equal(getOption("nemeton.app_options")$project_dir, "/avant")
-  expect_null(getOption("nemetonclaude.dossier_vues"))
+  expect_null(getOption("nemetonmcp.dossier_vues"))
 
   # Mode collectif : rien ne change.
   cfg2 <- config_test()
@@ -236,8 +236,42 @@ test_that("en mode isolation, chaque utilisateur a ses dossiers, restaures apres
   expect_equal(vu$projet_dir, "/avant")
 })
 
+test_that("le verificateur accepte l'une des audiences listees", {
+  v <- .verificateur_jwt(config_test(audience = c("nemeton-mcp", "nemeton-claude")), cles = jwks)
+  expect_equal(v(jeton(aud = c("nemeton-mcp", "account")))$sub, "u-123")
+  expect_equal(v(jeton(aud = c("nemeton-claude", "account")))$sub, "u-123")
+  expect_error(v(jeton(aud = c("ailleurs", "account"))), class = "nemetonmcp_jeton_refuse")
+  # Audience par defaut : nemeton-claude seulement.
+  withr::local_envvar(NEMETON_MCP_AUDIENCE = NA, NEMETON_CLAUDE_AUDIENCE = NA)
+  defaut <- .verificateur_jwt(config_test(audience = .liste_env("AUDIENCE", "nemeton-claude")), cles = jwks)
+  expect_error(defaut(jeton(aud = "nemeton-mcp")), class = "nemetonmcp_jeton_refuse")
+  expect_equal(defaut(jeton())$sub, "u-123")
+})
+
+test_that("les audiences se lisent en liste et ne peuvent pas etre vides", {
+  withr::local_envvar(NEMETON_MCP_AUDIENCE = " nemeton-mcp , nemeton-claude ")
+  cfg <- config_distant(url = "https://x", issuer = "https://k", secret = "s")
+  expect_equal(cfg$audience, c("nemeton-mcp", "nemeton-claude"))
+  expect_error(config_distant(url = "https://x", issuer = "https://k", secret = "s", audience = character()),
+               class = "nemetonmcp_config")
+})
+
+test_that("les anciennes variables NEMETON_CLAUDE_* sont lues a defaut, avec un avertissement", {
+  rlang::local_options(rlib_warning_verbosity = "verbose")
+  withr::local_envvar(NEMETON_MCP_PORT = NA, NEMETON_CLAUDE_PORT = "9000")
+  expect_warning(expect_equal(.env_mcp("PORT", "8765"), "9000"), "NEMETON_MCP_PORT")
+  # La nouvelle l'emporte, sans avertissement.
+  withr::local_envvar(NEMETON_MCP_PORT = "9100")
+  expect_no_warning(expect_equal(.env_mcp("PORT", "8765"), "9100"))
+  withr::local_envvar(NEMETON_MCP_PORT = NA, NEMETON_CLAUDE_PORT = NA)
+  expect_equal(.env_mcp("PORT", "8765"), "8765")
+  # Listes (roles, audiences) comprises.
+  withr::local_envvar(NEMETON_MCP_ROLES_ECRITURE = NA, NEMETON_CLAUDE_ROLES_ECRITURE = "chef, admin")
+  expect_warning(expect_equal(.liste_env("ROLES_ECRITURE", "x"), c("chef", "admin")))
+})
+
 test_that("config_distant exige l'URL et le realm", {
-  expect_error(config_distant(url = "", issuer = "x", secret = "s"), class = "nemetonclaude_config")
-  expect_error(config_distant(url = "https://x", issuer = "", secret = "s"), class = "nemetonclaude_config")
+  expect_error(config_distant(url = "", issuer = "x", secret = "s"), class = "nemetonmcp_config")
+  expect_error(config_distant(url = "https://x", issuer = "", secret = "s"), class = "nemetonmcp_config")
   expect_equal(config_distant(url = "https://x/", issuer = "https://k/realms/n/", secret = "s")$ressource, "https://x/mcp")
 })

@@ -197,7 +197,7 @@ Le lot 1 tient sans rien changer au déploiement : il s'appuie sur le serveur MC
 
 - [x] Source du cadastre : GeoJSON Etalab par commune, déjà codé dans `service_cadastre.R` (6 octobre 2026).
 - [x] Public cible : les deux. Vue simple par défaut (synthèse, familles, actions en langage courant) et bascule « Vue experte » mémorisée par lecteur (tous les sous-indicateurs, valeurs brutes, quantités) ; un même lien sert l'élu et le gestionnaire (6 octobre 2026).
-- [x] Hébergement du connecteur distant : une instance par collectif, dont tous les comptes partagent les projets comme dans nemetonshiny. Le mode isolé par compte (`NEMETON_CLAUDE_ISOLATION=utilisateur`) reste disponible et documenté (6 octobre 2026).
+- [x] Hébergement du connecteur distant : une instance par collectif, dont tous les comptes partagent les projets comme dans nemetonshiny. Le mode isolé par compte (`NEMETON_MCP_ISOLATION=utilisateur`) reste disponible et documenté (6 octobre 2026).
 - [x] Fond de contexte cartographique : le vecteur léger (routes, hydrographie BD TOPO découpés au projet) suffit ; l'ortho pré-rendue arrive avec les rasters du lot 4 (6 octobre 2026).
 - [x] Profils experts : les YAML restent côté R, seule source ; le connecteur les sert aux vues et à Claude (6 octobre 2026).
 - [x] Rapport : le PDF Quarto reste la pièce officielle (`generer_rapport`) ; un document Claude commentable sert au travail collectif, sans valeur officielle (6 octobre 2026).

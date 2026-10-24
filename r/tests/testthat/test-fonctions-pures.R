@@ -16,10 +16,10 @@ test_that(".resoudre_departement accepte code et nom, refuse l'ambigu", {
   expect_equal(.resoudre_departement("cote d'or", liste), "21")
   expect_equal(.resoudre_departement("Réunion", liste), "974")
   err <- expect_error(.resoudre_departement("cote", liste),
-                      class = "nemetonclaude_departement_ambigu")
+                      class = "nemetonmcp_departement_ambigu")
   expect_length(err$candidats, 2)
   expect_error(.resoudre_departement("Atlantide", liste),
-               class = "nemetonclaude_departement_introuvable")
+               class = "nemetonmcp_departement_introuvable")
 })
 
 brut <- list(
@@ -103,9 +103,9 @@ test_that(".mcp_call rend ok:true ou une erreur classee lisible", {
   expect_true(ok$ok)
   expect_equal(ok$a, 1)
   ko <- jsonlite::fromJSON(.mcp_call(
-    .abort("Ambigu.", "nemetonclaude_departement_ambigu", candidats = c("x", "y"))))
+    .abort("Ambigu.", "nemetonmcp_departement_ambigu", candidats = c("x", "y"))))
   expect_false(ko$ok)
-  expect_equal(ko$classe, "nemetonclaude_departement_ambigu")
+  expect_equal(ko$classe, "nemetonmcp_departement_ambigu")
   expect_equal(ko$candidats, c("x", "y"))
 })
 

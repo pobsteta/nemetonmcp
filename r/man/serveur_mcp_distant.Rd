@@ -6,13 +6,13 @@
 \usage{
 serveur_mcp_distant(
   host = "127.0.0.1",
-  port = as.integer(Sys.getenv("NEMETON_CLAUDE_PORT", "8765")),
+  port = as.integer(.env_mcp("PORT", "8765")),
   config = config_distant()
 )
 }
 \arguments{
 \item{host, port}{Listening address (default \verb{127.0.0.1:8765}, behind the
-proxy; \code{NEMETON_CLAUDE_PORT}).}
+proxy; \code{NEMETON_MCP_PORT}).}
 
 \item{config}{\code{\link[=config_distant]{config_distant()}}.}
 }

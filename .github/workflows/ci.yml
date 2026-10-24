@@ -54,7 +54,7 @@ jobs:
         run: npm run test:vues
       # Les exemples sont régénérés par les tests : ils doivent être à jour.
       - name: Données d'exemple à jour
-        run: git diff --exit-code -- vues/exemples
+        run: git diff --exit-code -- clients/claude/vues/exemples
       - uses: codecov/codecov-action@v7
         with:
           files: ./lcov.info

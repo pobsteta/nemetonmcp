@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Essaie nemetonClaude de bout en bout sur cette machine.
+# Essaie nemetonmcp de bout en bout sur cette machine.
 #
 # Usage : outils/essayer.sh [tout|r|vues|apercu|claude]   (défaut : tout)
 #
@@ -45,7 +45,7 @@ etape_r() {
   info "Tests du paquet"
   (cd "$racine/r" && Rscript -e 'res <- as.data.frame(devtools::test(stop_on_failure = TRUE))')
 
-  info "Installation de nemetonclaude"
+  info "Installation de nemetonmcp"
   R CMD INSTALL "$racine/r"
 }
 
@@ -58,7 +58,7 @@ etape_vues() {
   npx playwright install chromium >/dev/null
   npm test
   for vue in selection atlas calcul plan; do
-    node outils/assembler-vue.mjs "$vue" "vues/exemples/$vue" ".apercu/$vue"
+    node outils/assembler-vue.mjs "$vue" "clients/claude/vues/exemples/$vue" ".apercu/$vue"
   done
 }
 
@@ -80,12 +80,12 @@ etape_apercu() {
 
 etape_claude() {
   exiger claude
-  Rscript -e 'quit(status = !requireNamespace("nemetonclaude", quietly = TRUE))' \
-    || echec "paquet R nemetonclaude absent : lancer d'abord outils/essayer.sh r"
+  Rscript -e 'quit(status = !requireNamespace("nemetonmcp", quietly = TRUE))' \
+    || echec "paquet R nemetonmcp absent : lancer d'abord outils/essayer.sh r"
   etape "Claude Code avec le plugin nemeton"
   info "Essayer : « Côte-d'Or, Velars-sur-Ouche, je veux créer un projet »"
   info "ou, sur un projet calculé : « ouvre l'Atlas de <projet> »"
-  exec claude --plugin-dir "$racine"
+  exec claude --plugin-dir "$racine/clients/claude"
 }
 
 case "${1:-tout}" in

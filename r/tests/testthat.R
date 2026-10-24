@@ -1,4 +1,4 @@
 library(testthat)
-library(nemetonclaude)
+library(nemetonmcp)
 
-test_check("nemetonclaude")
+test_check("nemetonmcp")
