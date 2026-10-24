@@ -46,16 +46,17 @@ calcul passe par `nemeton`.
 | Auth, déploiement | `mod_auth.R`, `keycloak/`, `docker-compose.yml` | Keycloak OIDC, Docker |
 | Stockage projet | `data/parcels.gpkg`, `data/indicators.parquet`, `tenements.gpkg`, `ugs.json` | Parquet en place |
 
-### nemetonmcp (ex-nemetonclaude, v0.7.2)
+### nemetonmcp (ex-nemetonclaude, v0.8.0)
 
 - `r/` : paquet R qui étend le serveur MCP de nemetonshiny (création de
   projet, `vue_atlas`, `contexte_carto`, `detail_indicateur`, plan d'actions,
   `profils_experts`, `exporter_marculus`) ; le sert en stdio ou en HTTP
   distant (Streamable HTTP, OAuth 2.1 Keycloak, métadonnées RFC 9728, outils
   en lecture ou en écriture selon le rôle, liens de téléchargement signés).
-- `vues/` : moteur commun (`nemeton-view.js`, `.css`) et quatre vues publiées
-  en artefacts Claude : Sélection, Atlas, Calcul, Plan d'actions.
-- Plugin Claude Code `nemeton` (marketplace du dépôt) et skill `nemeton-vues`.
+- `clients/claude/vues/` : moteur commun (`nemeton-view.js`, `.css`) et quatre
+  vues publiées en artefacts Claude : Sélection, Atlas, Calcul, Plan d'actions.
+- `clients/claude/` : plugin Claude Code `nemeton` (marketplace déclarée à la
+  racine du dépôt), skill `nemeton-vues`, `.mcp.json`.
 - `deploiement/` : Caddy, service systemd, client Keycloak.
 
 ### nemeton (cœur)
@@ -306,7 +307,7 @@ d'une seconde.
 | `nemeton` | caches de couches par commune (instance cœur, règle 12) |
 | `platform_nemeton` | ADR « VPS Hostinger » et ADR « serveur MCP en R » |
 
-**Renommage** (PR 0.8.0, avant tout autre travail) : `Package:` et appels
+**Renommage** (fait en 0.8.0, #18) : `Package:` et appels
 `nemetonclaude::` → `nemetonmcp` (y compris `.mcp.json`, config MCP locale,
 service) ; variables `NEMETON_CLAUDE_*` → `NEMETON_MCP_*` avec repli
 temporaire ; audience Keycloak `nemeton-claude` conservée ; **nom du serveur
@@ -317,8 +318,9 @@ marketplace renommée, plugin réinstallé.
 
 1. **Fait** : API hors interface et MCP stdio dans nemetonshiny ; nemetonclaude
    0.7.x (vues, serveur distant OAuth, plugin) ; suivi des calculs par VICTOR.
-2. **Renommage** en `nemetonmcp` (0.8.0), arborescence `r/`, `clients/claude/`,
-   `deploiement/`. Retrouver où tourne le connecteur distant (502).
+2. **Fait (24/10/2026, #18)** : renommage en `nemetonmcp` 0.8.0, arborescence
+   `r/`, `clients/claude/`, `deploiement/`. Reste à retrouver où tourne le
+   connecteur distant (502).
 3. **Fiche et voie rapide** : outil `fiche_projet` tiré de l'en-tête de
    l'Atlas, avec un bloc `display_report` ; `nemeton_fiche` et accusé vocal
    dans VICTOR ; journal des durées.
