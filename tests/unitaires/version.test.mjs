@@ -12,9 +12,9 @@ test("suivante monte le bon numéro et remet les suivants à zéro", () => {
 
 test("notes extrait la section d'une version, sans attraper un numéro plus long", () => {
   const news = [
-    "# nemetonclaude 0.1.10 (2026-11-01)", "", "- Dix.", "",
-    "# nemetonclaude 0.1.1 (2026-10-07)", "", "- Un.", "- Deux.", "",
-    "# nemetonclaude 0.1.0 (2026-10-06)", "", "- Zéro."
+    "# nemetonmcp 0.1.10 (2026-11-01)", "", "- Dix.", "",
+    "# nemetonmcp 0.1.1 (2026-10-07)", "", "- Un.", "- Deux.", "",
+    "# nemetonmcp 0.1.0 (2026-10-06)", "", "- Zéro."
   ].join("\n");
   assert.equal(notes(news, "0.1.1"), "- Un.\n- Deux.");
   assert.equal(notes(news, "0.1.0"), "- Zéro.");

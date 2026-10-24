@@ -1,5 +1,5 @@
 // Version unique du dépôt, portée par r/DESCRIPTION et recopiée dans
-// package.json, .claude-plugin/plugin.json et le premier titre de NEWS.md.
+// package.json, clients/claude/.claude-plugin/plugin.json et le premier titre de NEWS.md.
 //
 // Usage :
 //   node outils/version.mjs                    affiche la version
@@ -19,9 +19,9 @@ import { dirname, join } from "node:path";
 const racine = join(dirname(fileURLToPath(import.meta.url)), "..");
 const chemin = (f) => join(racine, f);
 const lire = (f) => readFileSync(chemin(f), "utf8");
-const FICHIERS = { description: "r/DESCRIPTION", npm: "package.json", plugin: ".claude-plugin/plugin.json", news: "NEWS.md" };
+const FICHIERS = { description: "r/DESCRIPTION", npm: "package.json", plugin: "clients/claude/.claude-plugin/plugin.json", news: "NEWS.md" };
 const SEMVER = /^\d+\.\d+\.\d+$/;
-const TITRE = /^# nemetonclaude (\d+\.\d+\.\d+)/m;
+const TITRE = /^# nemetonmcp (\d+\.\d+\.\d+)/m;
 
 function echec(message) {
   console.error(`Erreur : ${message}`);
@@ -76,14 +76,14 @@ function ajouterSection(v, lignes) {
   const date = new Date().toISOString().slice(0, 10);
   const corps = lignes.length ? lignes.map((l) => `- ${l}`).join("\n") : "- Maintenance.";
   const avant = existsSync(chemin(FICHIERS.news)) ? lire(FICHIERS.news) : "";
-  writeFileSync(chemin(FICHIERS.news), `# nemetonclaude ${v} (${date})\n\n${corps}\n\n${avant}`.trimEnd() + "\n");
+  writeFileSync(chemin(FICHIERS.news), `# nemetonmcp ${v} (${date})\n\n${corps}\n\n${avant}`.trimEnd() + "\n");
 }
 
 export function notes(texte, v) {
   const lignes = texte.split("\n");
-  const debut = lignes.findIndex((l) => l.startsWith(`# nemetonclaude ${v} `) || l === `# nemetonclaude ${v}`);
+  const debut = lignes.findIndex((l) => l.startsWith(`# nemetonmcp ${v} `) || l === `# nemetonmcp ${v}`);
   if (debut < 0) return "";
-  const fin = lignes.findIndex((l, i) => i > debut && l.startsWith("# nemetonclaude "));
+  const fin = lignes.findIndex((l, i) => i > debut && l.startsWith("# nemetonmcp "));
   return lignes.slice(debut + 1, fin < 0 ? undefined : fin).join("\n").trim();
 }
 

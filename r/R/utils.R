@@ -1,4 +1,4 @@
-# Utilitaires communs aux outils MCP de nemetonclaude.
+# Utilitaires communs aux outils MCP de nemetonmcp.
 #
 # Meme convention de reponse que le serveur MCP de nemetonshiny
 # (R/service_mcp.R) : une chaine JSON courte, `{"ok":true,...}` ou
@@ -18,7 +18,7 @@
 # protocole.
 .mcp_call <- function(expr) {
   res <- tryCatch(expr, error = function(e) {
-    cls <- grep("^(nemetonshiny|nemetonclaude)_", class(e), value = TRUE)
+    cls <- grep("^(nemetonshiny|nemetonmcp)_", class(e), value = TRUE)
     structure(list(ok = FALSE, erreur = conditionMessage(e),
                    classe = if (length(cls)) cls[1] else NULL,
                    candidats = e$candidats),
@@ -29,8 +29,23 @@
   .json(Filter(Negate(is.null), res))
 }
 
+# Variable d'environnement `NEMETON_MCP_<nom>`. Faute de quoi, l'ancienne
+# `NEMETON_CLAUDE_<nom>` (avant 0.8.0) est encore lue, avec un avertissement
+# (une fois par variable et par session).
+.env_mcp <- function(nom, defaut = "") {
+  nouvelle <- paste0("NEMETON_MCP_", nom)
+  x <- Sys.getenv(nouvelle, NA)
+  if (!is.na(x)) return(x)
+  ancienne <- paste0("NEMETON_CLAUDE_", nom)
+  x <- Sys.getenv(ancienne, NA)
+  if (is.na(x)) return(defaut)
+  cli::cli_warn("{.envvar {ancienne}} est obsol\u00e8te : la renommer en {.envvar {nouvelle}}.",
+                .frequency = "once", .frequency_id = ancienne)
+  x
+}
+
 .abort <- function(message, class, ...) {
-  cli::cli_abort(message, class = c(class, "nemetonclaude_erreur"), ...,
+  cli::cli_abort(message, class = c(class, "nemetonmcp_erreur"), ...,
                  call = NULL, .envir = parent.frame())
 }
 
@@ -58,12 +73,12 @@
 }
 
 # Dossier ou sont ecrits les fichiers des vues (GeoJSON a joindre a un
-# artefact). L'option `nemetonclaude.dossier_vues` (posee par le connecteur
+# artefact). L'option `nemetonmcp.dossier_vues` (posee par le connecteur
 # distant en mode isolation, un dossier par utilisateur) l'emporte sur
-# `NEMETON_CLAUDE_VUES_DIR`, qui l'emporte sur le cache utilisateur.
+# `NEMETON_MCP_VUES_DIR`, qui l'emporte sur le cache utilisateur.
 .dossier_vues <- function(...) {
-  racine <- getOption("nemetonclaude.dossier_vues", Sys.getenv("NEMETON_CLAUDE_VUES_DIR", ""))
-  if (!nzchar(racine)) racine <- file.path(tools::R_user_dir("nemetonclaude", "cache"), "vues")
+  racine <- getOption("nemetonmcp.dossier_vues", .env_mcp("VUES_DIR"))
+  if (!nzchar(racine)) racine <- file.path(tools::R_user_dir("nemetonmcp", "cache"), "vues")
   d <- file.path(racine, ...)
   dir.create(d, recursive = TRUE, showWarnings = FALSE)
   normalizePath(d, mustWork = TRUE)

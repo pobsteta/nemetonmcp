@@ -12,7 +12,7 @@
   do.call(ellmer::tool, args)
 }
 
-#' MCP tools of nemetonclaude
+#' MCP tools of nemetonmcp
 #'
 #' @return A list of `ellmer::tool()` definitions: the tools of nemetonshiny
 #'   (`lister_projets`, `resume_projet`, `lancer_calcul`, `etat_calcul`,
@@ -97,10 +97,10 @@ outils_mcp <- function() {
            inclure_geojson = b("Also return the GeoJSON inline when under 2 MB (default false).", required = FALSE)),
       lecture = TRUE),
     .outil(ajouter_action, "ajouter_action",
-      "Add an action to a project's plan. Default status 'proposee': a suggestion by Claude must carry source = {origine: 'claude'} and stay 'proposee' until a person validates it. Unknown unit, type or out-of-horizon year: error nemetonclaude_action_invalide.",
+      "Add an action to a project's plan. Default status 'proposee': a suggestion by Claude must carry source = {origine: 'claude'} and stay 'proposee' until a person validates it. Unknown unit, type or out-of-horizon year: error nemetonmcp_action_invalide.",
       list(projet = projet_arg, action = .type_action(required = TRUE))),
     .outil(modifier_action, "modifier_action",
-      "Change fields of one action (status, year, priority, quantities, comment...). Pass attendu = the action's version as last read (plan_actions): if someone changed it since, nothing is written and the error nemetonclaude_conflit carries the current action.",
+      "Change fields of one action (status, year, priority, quantities, comment...). Pass attendu = the action's version as last read (plan_actions): if someone changed it since, nothing is written and the error nemetonmcp_conflit carries the current action.",
       list(projet = projet_arg,
            action_id = t("Action id (act_...)."),
            modifications = .type_action(required = TRUE),

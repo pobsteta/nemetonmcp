@@ -34,7 +34,7 @@ COUCHES_CONTEXTE <- list(
 contexte_carto <- function(projet, marge_m = 300) {
   .mcp_call({
     if (!requireNamespace("happign", quietly = TRUE)) {
-      .abort("Le paquet {.pkg happign} est requis pour la BD TOPO.", "nemetonclaude_dependance_manquante")
+      .abort("Le paquet {.pkg happign} est requis pour la BD TOPO.", "nemetonmcp_dependance_manquante")
     }
     id <- .resoudre_projet(projet)
     parcelles <- .ns("load_parcels")(id)

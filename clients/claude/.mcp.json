@@ -2,7 +2,7 @@
   "mcpServers": {
     "nemeton": {
       "command": "Rscript",
-      "args": ["-e", "nemetonclaude::serveur_mcp()"]
+      "args": ["-e", "nemetonmcp::serveur_mcp()"]
     }
   }
 }

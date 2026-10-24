@@ -1,16 +1,16 @@
 # Service systemd du connecteur nemeton distant.
-# /etc/systemd/system/nemeton-claude.service, puis :
-#   systemctl daemon-reload && systemctl enable --now nemeton-claude
+# /etc/systemd/system/nemetonmcp.service, puis :
+#   systemctl daemon-reload && systemctl enable --now nemetonmcp
 [Unit]
-Description=Connecteur MCP nemeton pour Claude (HTTP, Keycloak)
+Description=Connecteur MCP nemeton (HTTP, Keycloak)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=nemeton
 Group=nemeton
-EnvironmentFile=/etc/nemeton-claude.env
-ExecStart=/usr/bin/Rscript -e "nemetonclaude::serveur_mcp_distant()"
+EnvironmentFile=/etc/nemetonmcp.env
+ExecStart=/usr/bin/Rscript -e "nemetonmcp::serveur_mcp_distant()"
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

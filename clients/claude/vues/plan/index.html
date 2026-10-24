@@ -749,7 +749,8 @@
     });
   }
   function erreurEcriture(e) {
-    if (e && e.classe === "nemetonclaude_conflit" && e.candidats && e.candidats[0]) {
+    // nemetonclaude_conflit : nom de la classe avant nemetonmcp 0.8.0.
+    if (e && /^nemeton(mcp|claude)_conflit$/.test(e.classe) && e.candidats && e.candidats[0]) {
       etat.action = e.candidats[0]; rendreFiche();
       signalerFiche(t("conflit", { message: e.message }));
       rafraichir();

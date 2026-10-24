@@ -14,14 +14,14 @@ if (!vue || !donnees || !sortie) {
   process.exit(1);
 }
 mkdirSync(sortie, { recursive: true });
-const page = readFileSync(join(ici, "../vues", vue, "index.html"), "utf8");
+const page = readFileSync(join(ici, "../clients/claude/vues", vue, "index.html"), "utf8");
 writeFileSync(join(sortie, "index.html"),
   '<!doctype html><html lang="fr"><head><meta charset="utf-8">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' +
   "<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}" +
   "body{margin:0;font:14px system-ui;background:#fafaf7}img{max-width:100%}[hidden]{display:none!important}</style>" +
   "</head><body>" + page + "</body></html>");
-for (const f of ["nemeton-view.js", "nemeton-view.css"]) copyFileSync(join(ici, "../vues/moteur", f), join(sortie, f));
+for (const f of ["nemeton-view.js", "nemeton-view.css"]) copyFileSync(join(ici, "../clients/claude/vues/moteur", f), join(sortie, f));
 (function copier(d) {
   for (const n of readdirSync(d)) {
     const p = join(d, n);

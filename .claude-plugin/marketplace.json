@@ -1,5 +1,5 @@
 {
-  "name": "nemetonclaude",
+  "name": "nemetonmcp",
   "owner": {
     "name": "Pascal Obstetar",
     "email": "pascal.obstetar@gmail.com"
@@ -10,10 +10,10 @@
   "plugins": [
     {
       "name": "nemeton",
-      "source": "./",
+      "source": "./clients/claude",
       "description": "Diagnostic forestier nemeton dans Claude : connecteur MCP (R) et vues interactives publiées en artéfacts (Sélection des parcelles, Atlas du projet).",
       "category": "productivity",
-      "homepage": "https://github.com/pobsteta/nemetonclaude"
+      "homepage": "https://github.com/pobsteta/nemetonmcp"
     }
   ]
 }

@@ -5,39 +5,41 @@
 \title{Configuration of the remote connector}
 \usage{
 config_distant(
-  url = Sys.getenv("NEMETON_CLAUDE_URL"),
+  url = .env_mcp("URL"),
   issuer = Sys.getenv("NEMETON_KEYCLOAK_URL"),
-  audience = Sys.getenv("NEMETON_CLAUDE_AUDIENCE", "nemeton-claude"),
-  roles_lecture = .liste_env("NEMETON_CLAUDE_ROLES_LECTURE",
-    "lecteur,gestionnaire,admin"),
-  roles_ecriture = .liste_env("NEMETON_CLAUDE_ROLES_ECRITURE", "gestionnaire,admin"),
-  isolation = Sys.getenv("NEMETON_CLAUDE_ISOLATION", "collectif"),
-  secret = Sys.getenv("NEMETON_CLAUDE_SECRET"),
+  audience = .liste_env("AUDIENCE", "nemeton-claude"),
+  roles_lecture = .liste_env("ROLES_LECTURE", "lecteur,gestionnaire,admin"),
+  roles_ecriture = .liste_env("ROLES_ECRITURE", "gestionnaire,admin"),
+  isolation = .env_mcp("ISOLATION", "collectif"),
+  secret = .env_mcp("SECRET"),
   duree_lien = 3600
 )
 }
 \arguments{
 \item{url}{Public base URL of the server, as Claude reaches it
-(\code{NEMETON_CLAUDE_URL}, e.g. \verb{https://nemeton.example.org}). The MCP
+(\code{NEMETON_MCP_URL}, e.g. \verb{https://nemeton.example.org}). The MCP
 endpoint is \verb{<url>/mcp}.}
 
 \item{issuer}{Keycloak realm URL (\code{NEMETON_KEYCLOAK_URL}, the same
 variable as nemetonshiny, e.g. \verb{https://auth.example.org/realms/nemeton}).}
 
-\item{audience}{Expected \code{aud} of access tokens
-(\code{NEMETON_CLAUDE_AUDIENCE}, default \code{nemeton-claude}).}
+\item{audience}{Accepted \code{aud} values of access tokens: a token is
+accepted when its \code{aud} holds at least one of them
+(\code{NEMETON_MCP_AUDIENCE}, comma separated, default \code{nemeton-claude}).
+Listing two values, e.g. \verb{nemeton-mcp,nemeton-claude}, lets the
+Keycloak audience be renamed without cutting off tokens in flight.}
 
 \item{roles_lecture, roles_ecriture}{Keycloak realm roles allowed to read
 (list projects, open views) and to write (create a project, start a
-computation, write an export). \code{NEMETON_CLAUDE_ROLES_LECTURE}
-(default \verb{lecteur,gestionnaire,admin}) and \code{NEMETON_CLAUDE_ROLES_ECRITURE}
+computation, write an export). \code{NEMETON_MCP_ROLES_LECTURE}
+(default \verb{lecteur,gestionnaire,admin}) and \code{NEMETON_MCP_ROLES_ECRITURE}
 (default \verb{gestionnaire,admin}).}
 
 \item{isolation}{\code{"collectif"} (default): every user of the instance sees
 the same projects, as in nemetonshiny. \code{"utilisateur"}: each user has
-their own project folder under the root (\code{NEMETON_CLAUDE_ISOLATION}).}
+their own project folder under the root (\code{NEMETON_MCP_ISOLATION}).}
 
-\item{secret}{Key signing download links (\code{NEMETON_CLAUDE_SECRET}). Without
+\item{secret}{Key signing download links (\code{NEMETON_MCP_SECRET}). Without
 it, a random key is drawn at start-up and links die with the process.}
 
 \item{duree_lien}{Lifetime of a download link in seconds (default 3600).}
@@ -47,4 +49,8 @@ A list.
 }
 \description{
 Read from environment variables, each one overridable by an argument.
+}
+\details{
+Each \verb{NEMETON_MCP_*} variable falls back, with a warning, on the
+\verb{NEMETON_CLAUDE_*} variable of the same name used before version 0.8.0.
 }

@@ -1,7 +1,7 @@
 {
   "clientId": "nemeton-claude",
   "name": "nemeton dans Claude",
-  "description": "Connecteur MCP distant de nemeton pour claude.ai (nemetonclaude).",
+  "description": "Connecteur MCP distant de nemeton pour claude.ai (nemetonmcp).",
   "protocol": "openid-connect",
   "enabled": true,
   "publicClient": false,
@@ -28,6 +28,17 @@
       "protocolMapper": "oidc-audience-mapper",
       "config": {
         "included.custom.audience": "nemeton-claude",
+        "access.token.claim": "true",
+        "id.token.claim": "false",
+        "introspection.token.claim": "true"
+      }
+    },
+    {
+      "name": "audience nemeton-mcp",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "config": {
+        "included.custom.audience": "nemeton-mcp",
         "access.token.claim": "true",
         "id.token.claim": "false",
         "introspection.token.claim": "true"

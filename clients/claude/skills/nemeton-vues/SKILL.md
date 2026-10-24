@@ -163,7 +163,7 @@ Dans la conversation :
 - lire le plan avec `plan_actions(projet, geojson = false)` ;
 - passer les années civiles (`annee: 2030`), pas les décalages ;
 - pour modifier, passer `attendu = <version>` lue dans `plan_actions` :
-  l'erreur `nemetonclaude_conflit` signale que quelqu'un a modifié l'action
+  l'erreur `nemetonmcp_conflit` signale que quelqu'un a modifié l'action
   entre-temps et porte sa version actuelle dans `candidats` ;
 - préférer le statut `abandonnee` à `supprimer_action` pour garder la trace
   au tableau.
@@ -183,7 +183,7 @@ Chaque vue = sa page (`vues/<vue>/index.html`) + le moteur commun
   plugin vit dans `~/.claude/plugins/…`, pas dans le répertoire de travail.
 - **Copier avant de publier** : l'outil Artifact ne publie que des fichiers
   du répertoire de travail ou du scratchpad. Copier la page, le moteur et les
-  fichiers rendus par les outils (écrits sous `~/.cache/R/nemetonclaude/`)
+  fichiers rendus par les outils (écrits sous `~/.cache/R/nemetonmcp/`)
   dans un dossier du scratchpad propre à la vue (par exemple
   `<scratchpad>/atlas-<projet>/`), puis publier depuis ce dossier. Pour
   mettre la vue à jour, recopier les données au même endroit et republier le
@@ -286,15 +286,15 @@ Les outils rendent `{"ok": false, "erreur", "classe", "candidats"}` :
 
 | Classe | Réponse |
 | --- | --- |
-| `nemetonclaude_departement_ambigu`, `nemetonshiny_projet_ambigu` | proposer les `candidats` |
-| `nemetonclaude_commune_introuvable` | vérifier l'orthographe avec l'utilisateur, ou demander une commune voisine |
+| `nemetonmcp_departement_ambigu`, `nemetonshiny_projet_ambigu` | proposer les `candidats` |
+| `nemetonmcp_commune_introuvable` | vérifier l'orthographe avec l'utilisateur, ou demander une commune voisine |
 | `nemetonshiny_parcelles_introuvables` | signaler les IDU manquants (copie incomplète, autre commune) |
 | `nemetonshiny_sans_indicateurs` | proposer `lancer_calcul` |
 | `nemetonshiny_projet_ancien` | le projet date d'avant nemetonshiny 1.0 : proposer de le recréer avec les mêmes parcelles |
 | `nemetonshiny_calcul_en_cours`, `nemetonshiny_projet_verrouille` | attendre, ou suivre `etat_calcul` ; pour le plan d'actions : le projet est ouvert dans nemetonshiny, réessayer quand il sera fermé |
-| `nemetonclaude_action_invalide` | relire le message (unité inconnue, type, année hors horizon) et corriger |
-| `nemetonclaude_conflit` | montrer à l'utilisateur la version actuelle (`candidats`) avant de réécrire |
-| `nemetonclaude_marculus_vide` | aucune action de martelage dans le plan : rien à exporter |
+| `nemetonmcp_action_invalide` | relire le message (unité inconnue, type, année hors horizon) et corriger |
+| `nemetonmcp_conflit` | montrer à l'utilisateur la version actuelle (`candidats`) avant de réécrire |
+| `nemetonmcp_marculus_vide` | aucune action de martelage dans le plan : rien à exporter |
 | `nemetonshiny_onf_echec` | `croiser_onf` : source ONF, cadastre ou DGFiP injoignable, aucune forêt publique ou aucun recoupement ; le projet n'a pas changé |
 | `nemetonshiny_idu_inconnu` | `appliquer_ugf` : le fichier cite une parcelle absente du projet ; aucune parcelle n'est créée |
 | `nemetonshiny_pavage_invalide` | `appliquer_ugf` : les tènements ne pavent pas exactement les parcelles nommées ; le projet n'a pas changé |

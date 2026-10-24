@@ -15,8 +15,9 @@
 
 # ---------------------------------------------------------------- configuration
 
+# Liste separee par des virgules, lue dans `NEMETON_MCP_<nom>`.
 .liste_env <- function(nom, defaut) {
-  x <- Sys.getenv(nom, defaut)
+  x <- .env_mcp(nom, defaut)
   x <- trimws(strsplit(x, ",", fixed = TRUE)[[1]])
   x[nzchar(x)]
 }
@@ -26,41 +27,48 @@
 #' Read from environment variables, each one overridable by an argument.
 #'
 #' @param url Public base URL of the server, as Claude reaches it
-#'   (`NEMETON_CLAUDE_URL`, e.g. `https://nemeton.example.org`). The MCP
+#'   (`NEMETON_MCP_URL`, e.g. `https://nemeton.example.org`). The MCP
 #'   endpoint is `<url>/mcp`.
 #' @param issuer Keycloak realm URL (`NEMETON_KEYCLOAK_URL`, the same
 #'   variable as nemetonshiny, e.g. `https://auth.example.org/realms/nemeton`).
-#' @param audience Expected `aud` of access tokens
-#'   (`NEMETON_CLAUDE_AUDIENCE`, default `nemeton-claude`).
+#' @param audience Accepted `aud` values of access tokens: a token is
+#'   accepted when its `aud` holds at least one of them
+#'   (`NEMETON_MCP_AUDIENCE`, comma separated, default `nemeton-claude`).
+#'   Listing two values, e.g. `nemeton-mcp,nemeton-claude`, lets the
+#'   Keycloak audience be renamed without cutting off tokens in flight.
 #' @param roles_lecture,roles_ecriture Keycloak realm roles allowed to read
 #'   (list projects, open views) and to write (create a project, start a
-#'   computation, write an export). `NEMETON_CLAUDE_ROLES_LECTURE`
-#'   (default `lecteur,gestionnaire,admin`) and `NEMETON_CLAUDE_ROLES_ECRITURE`
+#'   computation, write an export). `NEMETON_MCP_ROLES_LECTURE`
+#'   (default `lecteur,gestionnaire,admin`) and `NEMETON_MCP_ROLES_ECRITURE`
 #'   (default `gestionnaire,admin`).
 #' @param isolation `"collectif"` (default): every user of the instance sees
 #'   the same projects, as in nemetonshiny. `"utilisateur"`: each user has
-#'   their own project folder under the root (`NEMETON_CLAUDE_ISOLATION`).
-#' @param secret Key signing download links (`NEMETON_CLAUDE_SECRET`). Without
+#'   their own project folder under the root (`NEMETON_MCP_ISOLATION`).
+#' @param secret Key signing download links (`NEMETON_MCP_SECRET`). Without
 #'   it, a random key is drawn at start-up and links die with the process.
 #' @param duree_lien Lifetime of a download link in seconds (default 3600).
+#' @details Each `NEMETON_MCP_*` variable falls back, with a warning, on the
+#'   `NEMETON_CLAUDE_*` variable of the same name used before version 0.8.0.
 #' @return A list.
 #' @export
-config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
+config_distant <- function(url = .env_mcp("URL"),
                            issuer = Sys.getenv("NEMETON_KEYCLOAK_URL"),
-                           audience = Sys.getenv("NEMETON_CLAUDE_AUDIENCE", "nemeton-claude"),
-                           roles_lecture = .liste_env("NEMETON_CLAUDE_ROLES_LECTURE", "lecteur,gestionnaire,admin"),
-                           roles_ecriture = .liste_env("NEMETON_CLAUDE_ROLES_ECRITURE", "gestionnaire,admin"),
-                           isolation = Sys.getenv("NEMETON_CLAUDE_ISOLATION", "collectif"),
-                           secret = Sys.getenv("NEMETON_CLAUDE_SECRET"),
+                           audience = .liste_env("AUDIENCE", "nemeton-claude"),
+                           roles_lecture = .liste_env("ROLES_LECTURE", "lecteur,gestionnaire,admin"),
+                           roles_ecriture = .liste_env("ROLES_ECRITURE", "gestionnaire,admin"),
+                           isolation = .env_mcp("ISOLATION", "collectif"),
+                           secret = .env_mcp("SECRET"),
                            duree_lien = 3600) {
   url <- sub("/+$", "", url)
   issuer <- sub("/+$", "", issuer)
-  if (!nzchar(url)) .abort("NEMETON_CLAUDE_URL manquante (URL publique du serveur).", "nemetonclaude_config")
-  if (!nzchar(issuer)) .abort("NEMETON_KEYCLOAK_URL manquante (URL du realm Keycloak).", "nemetonclaude_config")
+  if (!nzchar(url)) .abort("NEMETON_MCP_URL manquante (URL publique du serveur).", "nemetonmcp_config")
+  if (!nzchar(issuer)) .abort("NEMETON_KEYCLOAK_URL manquante (URL du realm Keycloak).", "nemetonmcp_config")
+  audience <- unique(audience[nzchar(audience)])
+  if (!length(audience)) .abort("NEMETON_MCP_AUDIENCE vide (audience attendue des jetons).", "nemetonmcp_config")
   isolation <- match.arg(isolation, c("collectif", "utilisateur"))
   if (!nzchar(secret)) {
     secret <- paste(openssl::rand_bytes(32), collapse = "")
-    cli::cli_inform("NEMETON_CLAUDE_SECRET absente : liens de t\u00e9l\u00e9chargement valables jusqu'\u00e0 l'arr\u00eat du serveur.")
+    cli::cli_inform("NEMETON_MCP_SECRET absente : liens de t\u00e9l\u00e9chargement valables jusqu'\u00e0 l'arr\u00eat du serveur.")
   }
   list(url = url, ressource = paste0(url, "/mcp"), issuer = issuer, audience = audience,
        roles_lecture = roles_lecture, roles_ecriture = unique(roles_ecriture),
@@ -91,7 +99,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
 }
 
 .refus <- function(message, raison = "invalid_token") {
-  rlang::abort(message, class = "nemetonclaude_jeton_refuse", raison = raison)
+  rlang::abort(message, class = "nemetonmcp_jeton_refuse", raison = raison)
 }
 
 # Cles publiques du realm (JWKS), relues au plus une fois par minute quand
@@ -123,7 +131,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
 #' @param marge Clock leeway in seconds.
 #' @return A function `verifier(jeton)` returning the user (`sub`, `nom`,
 #'   `email`, `roles`) or raising an error of class
-#'   `nemetonclaude_jeton_refuse`.
+#'   `nemetonmcp_jeton_refuse`.
 #' @noRd
 .verificateur_jwt <- function(config, cles = .jwks_keycloak(config$issuer), marge = 60) {
   function(jeton) {
@@ -147,7 +155,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
     if (is.null(claims$exp) || claims$exp < maintenant - marge) .refus("Jeton expir\u00e9.")
     if (!is.null(claims$nbf) && claims$nbf > maintenant + marge) .refus("Jeton pas encore valide.")
     if (!identical(claims$iss, config$issuer)) .refus("\u00c9metteur du jeton inattendu.")
-    if (!config$audience %in% unlist(claims$aud)) .refus("Jeton destin\u00e9 \u00e0 un autre service (aud).")
+    if (!any(config$audience %in% unlist(claims$aud))) .refus("Jeton destin\u00e9 \u00e0 un autre service (aud).")
     if (is.null(claims$sub) || !nzchar(claims$sub)) .refus("Jeton sans sujet.")
     list(sub = claims$sub,
          nom = claims$preferred_username %||% claims$name %||% claims$sub,
@@ -187,7 +195,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
   reel <- normalizePath(fichier, winslash = "/")
   bases <- normalizePath(racines, winslash = "/", mustWork = FALSE)
   i <- which(startsWith(reel, paste0(bases, "/")))[1]
-  if (is.na(i)) .abort("Fichier hors des dossiers servis.", "nemetonclaude_lien_refuse")
+  if (is.na(i)) .abort("Fichier hors des dossiers servis.", "nemetonmcp_lien_refuse")
   charge <- jose::base64url_encode(charToRaw(.json(list(
     r = i, f = substring(reel, nchar(bases[i]) + 2L),
     e = floor(as.numeric(maintenant) + config$duree_lien)))))
@@ -247,7 +255,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
        bearer_methods_supported = list("header"),
        scopes_supported = list("openid", "profile", "email"),
        resource_name = "nemeton",
-       resource_documentation = "https://github.com/pobsteta/nemetonclaude")
+       resource_documentation = "https://github.com/pobsteta/nemetonmcp")
 }
 
 .non_autorise <- function(config, description, raison = "invalid_token", status = 401L) {
@@ -273,14 +281,14 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
 # precedent.
 .entrer_contexte <- function(utilisateur, config) {
   nouvelles <- list(
-    nemetonclaude.utilisateur = utilisateur$nom %||% utilisateur$sub,
-    nemetonclaude.peut_ecrire = length(intersect(utilisateur$roles, config$roles_ecriture)) > 0)
+    nemetonmcp.utilisateur = utilisateur$nom %||% utilisateur$sub,
+    nemetonmcp.peut_ecrire = length(intersect(utilisateur$roles, config$roles_ecriture)) > 0)
   if (identical(config$isolation, "utilisateur")) {
     dossier <- gsub("[^A-Za-z0-9_-]", "_", utilisateur$sub)
     nouvelles$nemeton.app_options <- utils::modifyList(
       getOption("nemeton.app_options", list()) %||% list(),
       list(project_dir = file.path(config$racine_projets, dossier)))
-    nouvelles$nemetonclaude.dossier_vues <- file.path(config$racine_vues, dossier)
+    nouvelles$nemetonmcp.dossier_vues <- file.path(config$racine_vues, dossier)
   }
   avant <- do.call(options, nouvelles)
   function() options(avant)
@@ -292,7 +300,7 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
     return(.non_autorise(config, "Jeton d'acc\u00e8s requis."))
   }
   utilisateur <- tryCatch(verifier(sub("^Bearer\\s+", "", auth, ignore.case = TRUE)),
-                          nemetonclaude_jeton_refuse = function(e) e)
+                          nemetonmcp_jeton_refuse = function(e) e)
   if (inherits(utilisateur, "condition")) return(.non_autorise(config, conditionMessage(utilisateur), utilisateur$raison))
   permis <- .outils_permis(utilisateur$roles, config)
   if (!length(permis)) {
@@ -406,11 +414,11 @@ config_distant <- function(url = Sys.getenv("NEMETON_CLAUDE_URL"),
 #' `deploiement/` and the README for Keycloak and proxy configuration.
 #'
 #' @param host,port Listening address (default `127.0.0.1:8765`, behind the
-#'   proxy; `NEMETON_CLAUDE_PORT`).
+#'   proxy; `NEMETON_MCP_PORT`).
 #' @param config [config_distant()].
 #' @export
 serveur_mcp_distant <- function(host = "127.0.0.1",
-                                port = as.integer(Sys.getenv("NEMETON_CLAUDE_PORT", "8765")),
+                                port = as.integer(.env_mcp("PORT", "8765")),
                                 config = config_distant()) {
   the <- .mcptools("the")
   the$sessions_enabled <- FALSE
@@ -420,8 +428,9 @@ serveur_mcp_distant <- function(host = "127.0.0.1",
   app <- .app_distant(config)
   serveur <- httpuv::startServer(host, port, app)
   on.exit(httpuv::stopServer(serveur), add = TRUE)
+  aud <- paste(config$audience, collapse = ", ")
   cli::cli_inform(c("Connecteur nemeton distant : {config$ressource}",
-                    i = "\u00c9coute sur http://{host}:{port} ; jetons \u00e9mis par {config$issuer} (aud {config$audience}).",
+                    i = "\u00c9coute sur http://{host}:{port} ; jetons \u00e9mis par {config$issuer} (aud {aud}).",
                     i = "Isolation : {config$isolation}."))
   httpuv::service(Inf)
 }

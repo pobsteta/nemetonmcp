@@ -11,12 +11,12 @@
 # Identite inscrite dans l'historique : le compte Keycloak (connecteur
 # distant, pose par .entrer_contexte) ou l'utilisateur du systeme (local).
 .utilisateur_courant <- function() {
-  getOption("nemetonclaude.utilisateur", Sys.info()[["user"]] %||% "inconnu")
+  getOption("nemetonmcp.utilisateur", Sys.info()[["user"]] %||% "inconnu")
 }
 
 # Droit d'ecrire : pose par le connecteur distant d'apres les roles ; en
 # local (stdio), le proprietaire du serveur ecrit.
-.peut_ecrire <- function() isTRUE(getOption("nemetonclaude.peut_ecrire", TRUE))
+.peut_ecrire <- function() isTRUE(getOption("nemetonmcp.peut_ecrire", TRUE))
 
 # Un plan ne s'ecrit pas pendant que l'application edite le projet : elle le
 # garde en memoire et ecraserait la modification a sa prochaine sauvegarde.
@@ -166,7 +166,7 @@ plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300
 # Pure, testee.
 .normaliser_action <- function(a, annee_base) {
   if (is.character(a)) a <- jsonlite::fromJSON(a, simplifyVector = FALSE)
-  if (!is.list(a)) .abort("Action illisible.", "nemetonclaude_action_invalide")
+  if (!is.list(a)) .abort("Action illisible.", "nemetonmcp_action_invalide")
   if (!is.null(a$annee) && is.null(a$annee_cible)) a$annee_cible <- a$annee
   a <- a[intersect(names(a), .CHAMPS_ACTION)]
   if (!is.null(a$annee_cible)) {
@@ -181,7 +181,7 @@ plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300
 
 .ecrire_plan <- function(id, plan) {
   if (!isTRUE(.ns("save_action_plan")(id, plan))) {
-    .abort("Le plan d'actions n'a pas pu \u00eatre enregistr\u00e9.", "nemetonclaude_plan_non_enregistre")
+    .abort("Le plan d'actions n'a pas pu \u00eatre enregistr\u00e9.", "nemetonmcp_plan_non_enregistre")
   }
 }
 
@@ -190,13 +190,13 @@ plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300
 }
 
 .exiger_ecriture <- function() {
-  if (!.peut_ecrire()) .abort("Modification du plan r\u00e9serv\u00e9e aux r\u00f4les d'\u00e9criture.", "nemetonclaude_droits")
+  if (!.peut_ecrire()) .abort("Modification du plan r\u00e9serv\u00e9e aux r\u00f4les d'\u00e9criture.", "nemetonmcp_droits")
 }
 
 # Le message de nemetonshiny peut contenir des accolades : pas d'interpolation.
 .erreur_validation <- function(e) {
   rlang::abort(paste("Action refus\u00e9e par nemeton :", conditionMessage(e)),
-               class = c("nemetonclaude_action_invalide", "nemetonclaude_erreur"))
+               class = c("nemetonmcp_action_invalide", "nemetonmcp_erreur"))
 }
 
 #' Add an action to a project's plan
@@ -237,7 +237,7 @@ ajouter_action <- function(projet, action) {
 #'   [ajouter_action()]); `annee` is a calendar year.
 #' @param attendu Optional `version` of the action as the caller last read
 #'   it (field of [plan_actions()] actions): when the action changed since,
-#'   nothing is written and the error `nemetonclaude_conflit` carries the
+#'   nothing is written and the error `nemetonmcp_conflit` carries the
 #'   current action.
 #' @return JSON: the action as stored.
 #' @export
@@ -250,16 +250,16 @@ modifier_action <- function(projet, action_id, modifications, attendu = NULL) {
     base <- .ns("action_plan_annee_base")(plan)
     actuelle <- .ns("get_action_by_id")(plan, action_id)
     if (is.null(actuelle)) {
-      .abort("Action {.val {action_id}} introuvable : elle a peut-\u00eatre \u00e9t\u00e9 supprim\u00e9e.", "nemetonclaude_action_introuvable")
+      .abort("Action {.val {action_id}} introuvable : elle a peut-\u00eatre \u00e9t\u00e9 supprim\u00e9e.", "nemetonmcp_action_introuvable")
     }
     if (!is.null(attendu) && nzchar(attendu) && !identical(attendu, .version_action(actuelle))) {
       rlang::abort(sprintf("L'action a \u00e9t\u00e9 modifi\u00e9e par %s pendant votre saisie.",
                            actuelle$modifie_par %||% actuelle$cree_par %||% "un autre compte"),
-                   class = c("nemetonclaude_conflit", "nemetonclaude_erreur"),
+                   class = c("nemetonmcp_conflit", "nemetonmcp_erreur"),
                    candidats = list(.action_pour_vue(actuelle, base)))
     }
     m <- .normaliser_action(modifications, base)
-    if (!length(m)) .abort("Aucune modification.", "nemetonclaude_action_invalide")
+    if (!length(m)) .abort("Aucune modification.", "nemetonmcp_action_invalide")
     ug <- .ug_ids_projet(id)$ids
     plan <- tryCatch(.ns("update_action_in_plan")(plan, action_id, m, ug_ids = ug, user = .utilisateur_courant()),
                      error = .erreur_validation)
@@ -283,7 +283,7 @@ supprimer_action <- function(projet, action_id) {
     .refuser_si_verrouille(id)
     plan <- .ns("load_action_plan")(id)
     if (is.na(.ns("find_action_index")(plan, action_id))) {
-      .abort("Action {.val {action_id}} introuvable.", "nemetonclaude_action_introuvable")
+      .abort("Action {.val {action_id}} introuvable.", "nemetonmcp_action_introuvable")
     }
     plan <- .ns("delete_action_from_plan")(plan, action_id, user = .utilisateur_courant())
     .ecrire_plan(id, plan)
@@ -334,7 +334,7 @@ exporter_marculus <- function(projet) {
     res <- .ns("marculus_export_bundle")(id, f)
     if (!isTRUE(res$n_contexts > 0)) {
       .abort("Aucune action de martelage dans le plan (\u00e9claircie, coupe rase, d\u00e9pressage, observation).",
-             "nemetonclaude_marculus_vide")
+             "nemetonmcp_marculus_vide")
     }
     list(projet = id, fichier = normalizePath(f), chantiers = res$n_contexts,
          geopackages = res$n_gpkg, avec_desserte = isTRUE(res$has_desserte),
