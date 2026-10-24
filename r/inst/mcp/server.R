@@ -4,5 +4,5 @@
 # .mcp.json a la racine du plugin. stdout est le canal du protocole : rien ne
 # doit y etre ecrit ; les messages partent sur stderr.
 
-suppressPackageStartupMessages(loadNamespace("nemetonclaude"))
-nemetonclaude::serveur_mcp()
+suppressPackageStartupMessages(loadNamespace("nemetonmcp"))
+nemetonmcp::serveur_mcp()

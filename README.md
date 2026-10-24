@@ -1,9 +1,9 @@
 # nemetonmcp
 
 <!-- badges: start -->
-[![CI](https://github.com/pobsteta/nemetonclaude/actions/workflows/ci.yml/badge.svg)](https://github.com/pobsteta/nemetonclaude/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/github/v/release/pobsteta/nemetonclaude?sort=semver&logo=github&label=version&color=blue)](https://github.com/pobsteta/nemetonclaude/releases/latest)
-[![codecov](https://codecov.io/gh/pobsteta/nemetonclaude/graph/badge.svg)](https://codecov.io/gh/pobsteta/nemetonclaude)
+[![CI](https://github.com/pobsteta/nemetonmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pobsteta/nemetonmcp/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/release/pobsteta/nemetonmcp?sort=semver&logo=github&label=version&color=blue)](https://github.com/pobsteta/nemetonmcp/releases/latest)
+[![codecov](https://codecov.io/gh/pobsteta/nemetonmcp/graph/badge.svg)](https://codecov.io/gh/pobsteta/nemetonmcp)
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](https://eupl.eu/1.2/fr/)
 <!-- badges: end -->
 
@@ -20,15 +20,16 @@ Le brief qui cadre le projet est dans
 
 | Dossier | Rôle |
 | --- | --- |
-| `r/` | Paquet R **nemetonclaude** : étend le serveur MCP de nemetonshiny (10 outils existants, dont `croiser_onf` et `appliquer_ugf` pour les UGF numérotées depuis le parcellaire ONF) avec `chercher_commune`, `parcelles_commune`, `creer_projet`, `vue_atlas`, `contexte_carto`, `detail_indicateur` , et les outils du plan d'actions (`plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus`) ; le sert en local (stdio) ou à distance (HTTP, authentification Keycloak, liens de téléchargement signés) |
-| `vues/moteur/` | Moteur commun des vues : `nemeton-view.js` (carte Leaflet sans tuiles, palettes, radar, i18n FR/EN, appels au connecteur) et `nemeton-view.css` (charte, thème clair et sombre, styles Leaflet inlinés) |
-| `vues/selection/` | **Vue 0 — Sélection des parcelles** : carte de la commune, clic pour ajouter ou retirer, recherche « AB 12 », sélection au rectangle, surface totale, BD Forêt en repère, « Créer le projet » via le connecteur ou liste d'IDU à copier |
-| `vues/atlas/` | **Vue 1 — Atlas du projet** : rail des 12 familles, carte choroplèthe ou bivariée 5 × 5, tableau lié à la carte, fiche d'UG avec radar 12 axes et sous-indicateurs, valeurs manquantes hachurées avec leur raison, comparaison de deux UG, « Demander à Claude », exports CSV et GeoPackage |
-| `vues/calcul/` | **Vue 2 — Calcul en cours** : suivi en direct d'`etat_calcul` (avancement, indicateurs, temps écoulé, tâche), Annuler avec confirmation, Relancer, journal en cas d'échec, invitation à ouvrir l'Atlas ; lisible sur téléphone |
-| `vues/plan/` | **Vue 3 — Plan d'actions partagé** : le plan du projet nemeton (le même que dans nemetonshiny), carte des UG colorée par prochaine action, type, priorité ou statut ; calendrier en vue simple, tableau, kanban, quantités et historique en vue experte ; fiche d'action modifiable selon les rôles, avec détection des modifications concurrentes ; propositions de Claude en ambre, à valider ; commentaires ancrés ; paquet Marculus |
-| `vues/exemples/` | Données **fictives** pour essayer les vues sans nemeton, et catalogue des familles du cœur |
-| `skills/nemeton-vues/` | Skill du plugin : quand ouvrir quelle vue, comment la publier, contrat de données, charte |
-| `.claude-plugin/`, `.mcp.json` | Manifeste du plugin et déclaration du serveur MCP `nemeton` |
+| `r/` | Paquet R **nemetonmcp** : étend le serveur MCP de nemetonshiny (10 outils existants, dont `croiser_onf` et `appliquer_ugf` pour les UGF numérotées depuis le parcellaire ONF) avec `chercher_commune`, `parcelles_commune`, `creer_projet`, `vue_atlas`, `contexte_carto`, `detail_indicateur` , et les outils du plan d'actions (`plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus`) ; le sert en local (stdio) ou à distance (HTTP, authentification Keycloak, liens de téléchargement signés) |
+| `clients/claude/` | **Plugin Claude Code** : manifeste (`.claude-plugin/plugin.json`), déclaration du serveur MCP `nemeton` (`.mcp.json`), vues et skill ci-dessous |
+| `clients/claude/vues/moteur/` | Moteur commun des vues : `nemeton-view.js` (carte Leaflet sans tuiles, palettes, radar, i18n FR/EN, appels au connecteur) et `nemeton-view.css` (charte, thème clair et sombre, styles Leaflet inlinés) |
+| `clients/claude/vues/selection/` | **Vue 0 — Sélection des parcelles** : carte de la commune, clic pour ajouter ou retirer, recherche « AB 12 », sélection au rectangle, surface totale, BD Forêt en repère, « Créer le projet » via le connecteur ou liste d'IDU à copier |
+| `clients/claude/vues/atlas/` | **Vue 1 — Atlas du projet** : rail des 12 familles, carte choroplèthe ou bivariée 5 × 5, tableau lié à la carte, fiche d'UG avec radar 12 axes et sous-indicateurs, valeurs manquantes hachurées avec leur raison, comparaison de deux UG, « Demander à Claude », exports CSV et GeoPackage |
+| `clients/claude/vues/calcul/` | **Vue 2 — Calcul en cours** : suivi en direct d'`etat_calcul` (avancement, indicateurs, temps écoulé, tâche), Annuler avec confirmation, Relancer, journal en cas d'échec, invitation à ouvrir l'Atlas ; lisible sur téléphone |
+| `clients/claude/vues/plan/` | **Vue 3 — Plan d'actions partagé** : le plan du projet nemeton (le même que dans nemetonshiny), carte des UG colorée par prochaine action, type, priorité ou statut ; calendrier en vue simple, tableau, kanban, quantités et historique en vue experte ; fiche d'action modifiable selon les rôles, avec détection des modifications concurrentes ; propositions de Claude en ambre, à valider ; commentaires ancrés ; paquet Marculus |
+| `clients/claude/vues/exemples/` | Données **fictives** pour essayer les vues sans nemeton, et catalogue des familles du cœur |
+| `clients/claude/skills/nemeton-vues/` | Skill du plugin : quand ouvrir quelle vue, comment la publier, contrat de données, charte |
+| `.claude-plugin/marketplace.json` | Marketplace Claude Code du dépôt, qui pointe vers `clients/claude/` |
 | `deploiement/` | Connecteur distant : client Keycloak, proxy HTTPS (Caddy), service systemd, variables d'environnement |
 | `outils/`, `tests/` | Fabrication (CSS, données d'exemple, assemblage d'une vue, versions) et tests unitaires et de bout en bout |
 
@@ -42,13 +43,13 @@ nemeton.
 ```r
 # install.packages("remotes")
 remotes::install_github("pobsteta/nemetonshiny")
-remotes::install_github("pobsteta/nemetonclaude", subdir = "r")
+remotes::install_github("pobsteta/nemetonmcp", subdir = "r")
 install.packages(c("mcptools", "happign"))  # happign : repli cadastre, BD Forêt, BD TOPO
 ```
 
-Le serveur se lance par `Rscript -e "nemetonclaude::serveur_mcp()"` (déjà
-déclaré dans `.mcp.json`). Variables utiles : `NEMETON_PROJECT_DIR` (dossier
-des projets, comme nemetonshiny) et `NEMETON_CLAUDE_VUES_DIR` (dossier des
+Le serveur se lance par `Rscript -e "nemetonmcp::serveur_mcp()"` (déjà
+déclaré dans `clients/claude/.mcp.json`). Variables utiles : `NEMETON_PROJECT_DIR` (dossier
+des projets, comme nemetonshiny) et `NEMETON_MCP_VUES_DIR` (dossier des
 fichiers GeoJSON écrits pour les vues, par défaut le cache utilisateur R). Le
 serveur doit tourner dans une locale UTF-8.
 
@@ -58,20 +59,20 @@ Le dépôt est aussi une marketplace Claude Code. Installation durable, une
 fois le connecteur R installé :
 
 ```bash
-claude plugin marketplace add pobsteta/nemetonclaude
-claude plugin install nemeton@nemetonclaude --scope user   # ou project, local
+claude plugin marketplace add pobsteta/nemetonmcp
+claude plugin install nemeton@nemetonmcp --scope user   # ou project, local
 ```
 
 Dans Claude Code, on peut aussi taper
-`/plugin install nemeton --marketplace pobsteta/nemetonclaude` (Claude Code
+`/plugin install nemeton --marketplace pobsteta/nemetonmcp` (Claude Code
 2.1.275 ou plus). Les mises à jour se récupèrent par
-`claude plugin marketplace update nemetonclaude`, puis
-`claude plugin update nemeton@nemetonclaude`.
+`claude plugin marketplace update nemetonmcp`, puis
+`claude plugin update nemeton@nemetonmcp`.
 
 Pour essayer le plugin sans l'installer, ou pour le développer :
 
 ```bash
-claude --plugin-dir <chemin de ce dépôt>   # charge le plugin pour la session
+claude --plugin-dir <chemin de ce dépôt>/clients/claude   # charge le plugin pour la session
 ```
 
 Le plugin apporte le serveur MCP `nemeton` et le skill `nemeton-vues`.
@@ -89,7 +90,7 @@ rôles.
 flowchart LR
     Vue["Vue partagée<br/>(capacité mcp)"] --> Claude["claude.ai<br/>connecteur « nemeton »"]
     Claude -- "jeton d'accès" --> Caddy["Caddy (HTTPS)"]
-    Caddy --> R["nemetonclaude::serveur_mcp_distant()<br/>vérifie le jeton (JWKS)"]
+    Caddy --> R["nemetonmcp::serveur_mcp_distant()<br/>vérifie le jeton (JWKS)"]
     Claude -. "connexion OAuth" .-> KC["Keycloak<br/>realm nemeton"]
     R -. "clés publiques" .-> KC
     R --> N["nemeton / nemetonshiny"]
@@ -100,7 +101,7 @@ Le serveur est une *ressource protégée* au sens de la spécification MCP :
 - `GET /.well-known/oauth-protected-resource` désigne Keycloak comme serveur
   d'autorisation ;
 - `POST /mcp` exige un jeton d'accès Keycloak valide (signature, émetteur,
-  audience `nemeton-claude`, expiration), sinon `401` avec le défi
+  audience, expiration), sinon `401` avec le défi
   `WWW-Authenticate` qui lance la connexion OAuth côté claude.ai ;
 - les rôles du realm décident des outils : `lecteur` lit (projets, vues,
   états de calcul, plan d'actions, profils experts), `gestionnaire` et
@@ -118,13 +119,13 @@ Le serveur est une *ressource protégée* au sens de la spécification MCP :
    Import client* avec
    [`deploiement/keycloak/client-nemeton-claude.json`](deploiement/keycloak/client-nemeton-claude.json)
    (client confidentiel, PKCE, retour `https://claude.ai/api/mcp/auth_callback`,
-   mappeur d'audience `nemeton-claude`). Régénérer son secret (onglet
-   *Credentials*) et donner aux comptes le rôle `lecteur`, `gestionnaire` ou
+   mappeurs d'audience `nemeton-claude` et `nemeton-mcp`, voir plus bas).
+   Régénérer son secret (onglet *Credentials*) et donner aux comptes le rôle `lecteur`, `gestionnaire` ou
    `admin`.
 2. **Serveur** : installer le paquet R (voir plus haut), puis copier
-   [`deploiement/nemeton-claude.env.exemple`](deploiement/nemeton-claude.env.exemple)
-   en `/etc/nemeton-claude.env` et le remplir, installer
-   [`deploiement/nemeton-claude.service`](deploiement/nemeton-claude.service)
+   [`deploiement/nemetonmcp.env.exemple`](deploiement/nemetonmcp.env.exemple)
+   en `/etc/nemetonmcp.env` et le remplir, installer
+   [`deploiement/nemetonmcp.service`](deploiement/nemetonmcp.service)
    (systemd) et [`deploiement/Caddyfile`](deploiement/Caddyfile) (HTTPS
    automatique). Le serveur R n'écoute qu'en local.
 3. **Vérifier** :
@@ -138,9 +139,47 @@ Le serveur est une *ressource protégée* au sens de la spécification MCP :
    les réglages avancés, l'identifiant `nemeton-claude` et le secret du
    client. Chaque utilisateur se connecte ensuite avec son compte Keycloak.
 
-`NEMETON_CLAUDE_ISOLATION=utilisateur` donne à chaque compte son propre
+`NEMETON_MCP_ISOLATION=utilisateur` donne à chaque compte son propre
 dossier de projets ; par défaut (`collectif`), tous les comptes de l'instance
 partagent les projets, comme dans nemetonshiny.
+
+### Audience des jetons
+
+`NEMETON_MCP_AUDIENCE` liste, séparées par des virgules, les audiences
+acceptées : un jeton passe s'il en porte au moins une. Par défaut, c'est
+`nemeton-claude`, l'audience historique du client Keycloak de claude.ai.
+L'audience cible est `nemeton-mcp`, qui désigne le serveur lui-même :
+chaque client MCP (claude.ai aujourd'hui, d'autres demain) a son propre
+client Keycloak, et chacun ajoute `nemeton-mcp` à ses jetons. Migration sans
+coupure :
+
+1. Dans Keycloak, ajouter au client `nemeton-claude` un mappeur d'audience
+   `nemeton-mcp`, en gardant l'ancien (le modèle
+   `client-nemeton-claude.json` porte déjà les deux).
+2. Sur le serveur, `NEMETON_MCP_AUDIENCE=nemeton-mcp,nemeton-claude`, puis
+   `systemctl restart nemetonmcp`.
+3. Quand tous les jetons en circulation portent `nemeton-mcp` (au plus la
+   durée de vie d'une session Keycloak), retirer le mappeur
+   `nemeton-claude` et passer à `NEMETON_MCP_AUDIENCE=nemeton-mcp`.
+
+### Migration depuis nemetonclaude (avant 0.8.0)
+
+- Paquet R : `remotes::install_github("pobsteta/nemetonmcp", subdir = "r")`,
+  puis `remove.packages("nemetonclaude")`.
+- Service : renommer `/etc/nemeton-claude.env` en `/etc/nemetonmcp.env`,
+  installer `deploiement/nemetonmcp.service` à la place de
+  `nemeton-claude.service` (`systemctl disable --now nemeton-claude`, puis
+  `systemctl enable --now nemetonmcp`).
+- Variables : `NEMETON_CLAUDE_*` devient `NEMETON_MCP_*`. Les anciennes sont
+  encore lues, avec un avertissement, quand les nouvelles manquent.
+- Plugin : `claude plugin marketplace add pobsteta/nemetonmcp`, puis
+  `claude plugin install nemeton@nemetonmcp` ; l'ancienne marketplace
+  `nemetonclaude` peut être retirée.
+- Erreurs : les classes `nemetonclaude_*` deviennent `nemetonmcp_*`. La vue
+  Plan d'actions reconnaît les deux, mais une vue Plan publiée avant 0.8.0
+  doit être republiée pour signaler les modifications concurrentes.
+- Le nom du serveur MCP (`nemeton`), celui du plugin et le client Keycloak
+  `nemeton-claude` ne changent pas.
 
 ## Tout essayer d'un coup
 
@@ -157,8 +196,8 @@ détail).
 
 ```bash
 npm install
-npm run exemples              # régénère vues/exemples/ (données fictives)
-node outils/assembler-vue.mjs atlas vues/exemples/atlas .apercu/atlas   # idem calcul, plan, selection
+npm run exemples              # régénère clients/claude/vues/exemples/ (données fictives)
+node outils/assembler-vue.mjs atlas clients/claude/vues/exemples/atlas .apercu/atlas   # idem calcul, plan, selection
 npx serve .apercu             # puis ouvrir /atlas/ et /selection/
 npm test                      # tests unitaires puis de bout en bout (Chromium)
 ```
@@ -174,7 +213,7 @@ cd r && Rscript -e 'devtools::test()'
 À chaque PR et sur `main`, le workflow **CI** vérifie :
 
 - que la version est la même dans `r/DESCRIPTION`, `package.json`,
-  `.claude-plugin/plugin.json` et `NEWS.md` (`npm run versions`) ;
+  `clients/claude/.claude-plugin/plugin.json` et `NEWS.md` (`npm run versions`) ;
 - les vues : tests unitaires du moteur et des outils avec couverture
   (`npm run test:unitaires`, `npm run couverture`), tests de bout en bout dans
   Chromium (`npm run test:vues`) ;

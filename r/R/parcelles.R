@@ -68,7 +68,7 @@ parcelles_commune_vue <- function(insee, section = NULL, tolerance_m = 0.5,
   .mcp_call({
     insee <- toupper(trimws(as.character(insee %||% "")))
     if (!grepl("^[0-9][0-9AB][0-9]{3}$", insee)) {
-      .abort("Code INSEE invalide : {.val {insee}}.", "nemetonclaude_commune_introuvable")
+      .abort("Code INSEE invalide : {.val {insee}}.", "nemetonmcp_commune_introuvable")
     }
     crs_m <- .crs_metrique(insee)
     brut <- nemetonshiny::parcelles_commune(insee)
@@ -78,7 +78,7 @@ parcelles_commune_vue <- function(insee, section = NULL, tolerance_m = 0.5,
       section <- toupper(trimws(section))
       if (!section %in% p$section) {
         .abort("Section {.val {section}} absente de la commune {.val {insee}}.",
-               "nemetonclaude_section_introuvable", candidats = sections$section)
+               "nemetonmcp_section_introuvable", candidats = sections$section)
       }
       p <- p[p$section == section, ]
     }

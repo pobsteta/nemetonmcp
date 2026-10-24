@@ -18,7 +18,7 @@ globalThis.localStorage = {
   setItem: (k, v) => stockage.set(k, String(v)),
   removeItem: (k) => stockage.delete(k)
 };
-await import("../../vues/moteur/nemeton-view.js");
+await import("../../clients/claude/vues/moteur/nemeton-view.js");
 const NV = globalThis.NV;
 
 const hex = /^#[0-9a-f]{6}$/;

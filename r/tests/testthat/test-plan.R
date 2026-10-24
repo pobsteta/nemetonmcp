@@ -8,7 +8,7 @@ projet_test <- function(env = parent.frame()) {
   racine <- withr::local_tempdir(.local_envir = env)
   dir.create(file.path(racine, ID, "data"), recursive = TRUE)
   withr::local_options(nemeton.app_options = list(project_dir = racine),
-                       nemetonclaude.utilisateur = "gest", nemetonclaude.peut_ecrire = TRUE,
+                       nemetonmcp.utilisateur = "gest", nemetonmcp.peut_ecrire = TRUE,
                        .local_envir = env)
   testthat::local_mocked_bindings(
     .resoudre_projet = function(projet) ID,
@@ -75,7 +75,7 @@ test_that("ajouter, lire, modifier et supprimer une action ecrivent le plan et s
   # Conflit : la vue avait lu une version plus ancienne.
   k <- lire(modifier_action("x", a$id, list(priorite = "basse"), attendu = a$version))
   expect_false(k$ok)
-  expect_equal(k$classe, "nemetonclaude_conflit")
+  expect_equal(k$classe, "nemetonmcp_conflit")
   expect_equal(k$candidats[[1]]$statut, "validee")
 
   champs <- vapply(lire(plan_actions("x", geojson = FALSE))$historique, function(e) e$champ %||% "", "")
@@ -92,16 +92,16 @@ test_that("une action invalide ou un compte sans ecriture sont refuses sans rien
   projet_test()
   r <- lire(ajouter_action("x", list(ug_id = "u9", type = "eclaircie", annee = 2030)))
   expect_false(r$ok)
-  expect_equal(r$classe, "nemetonclaude_action_invalide")
+  expect_equal(r$classe, "nemetonmcp_action_invalide")
   expect_match(r$erreur, "u9")
   r <- lire(ajouter_action("x", list(ug_id = "u1", type = "coupe_magique", annee = 2030)))
-  expect_equal(r$classe, "nemetonclaude_action_invalide")
+  expect_equal(r$classe, "nemetonmcp_action_invalide")
   expect_equal(lire(modifier_action("x", "act_absente", list(statut = "validee")))$classe,
-               "nemetonclaude_action_introuvable")
-  withr::local_options(nemetonclaude.peut_ecrire = FALSE)
+               "nemetonmcp_action_introuvable")
+  withr::local_options(nemetonmcp.peut_ecrire = FALSE)
   expect_equal(lire(ajouter_action("x", list(ug_id = "u1", type = "eclaircie", annee = 2030)))$classe,
-               "nemetonclaude_droits")
-  withr::local_options(nemetonclaude.peut_ecrire = TRUE)
+               "nemetonmcp_droits")
+  withr::local_options(nemetonmcp.peut_ecrire = TRUE)
   expect_length(lire(plan_actions("x", geojson = FALSE))$actions, 0)
 })
 

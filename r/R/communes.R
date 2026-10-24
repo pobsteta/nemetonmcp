@@ -9,12 +9,12 @@
 #' @param departement Code (`"21"`, `"2A"`, `"974"`) or name, accents and
 #'   case ignored (`"Cote d'Or"`).
 #' @return The department code. Error of class
-#'   `nemetonclaude_departement_ambigu` (with `candidats`) or
-#'   `nemetonclaude_departement_introuvable`.
+#'   `nemetonmcp_departement_ambigu` (with `candidats`) or
+#'   `nemetonmcp_departement_introuvable`.
 #' @noRd
 .resoudre_departement <- function(departement, liste = NULL) {
   d <- trimws(as.character(departement %||% ""))
-  if (!nzchar(d)) .abort("D\u00e9partement non pr\u00e9cis\u00e9.", "nemetonclaude_departement_introuvable")
+  if (!nzchar(d)) .abort("D\u00e9partement non pr\u00e9cis\u00e9.", "nemetonmcp_departement_introuvable")
   liste <- liste %||% .ns("get_departments")()
   codes <- unname(liste)
   if (toupper(d) %in% codes) return(toupper(d))
@@ -27,11 +27,11 @@
   if (length(idx) == 1L) return(codes[idx])
   if (!length(idx)) {
     .abort("Aucun d\u00e9partement ne correspond \u00e0 {.val {d}}.",
-           "nemetonclaude_departement_introuvable")
+           "nemetonmcp_departement_introuvable")
   }
   candidats <- names(liste)[idx]
   .abort(c("Plusieurs d\u00e9partements correspondent \u00e0 {.val {d}}.", i = "{candidats}"),
-         "nemetonclaude_departement_ambigu", candidats = candidats)
+         "nemetonmcp_departement_ambigu", candidats = candidats)
 }
 
 # Interroge geo.api.gouv.fr. Communes actuelles, deleguees et associees :
@@ -105,13 +105,13 @@
 chercher_commune <- function(departement, nom, limite = 10) {
   .mcp_call({
     if (!is.character(nom) || !nzchar(trimws(nom))) {
-      .abort("Nom de commune non pr\u00e9cis\u00e9.", "nemetonclaude_commune_introuvable")
+      .abort("Nom de commune non pr\u00e9cis\u00e9.", "nemetonmcp_commune_introuvable")
     }
     dep <- .resoudre_departement(departement)
     cand <- .candidats_communes(.requete_communes(dep, trimws(nom), as.integer(limite %||% 10)))
     if (!nrow(cand)) {
       .abort("Aucune commune {.val {nom}} dans le d\u00e9partement {.val {dep}}.",
-             "nemetonclaude_commune_introuvable")
+             "nemetonmcp_commune_introuvable")
     }
     choix <- .choisir_commune(cand, nom)
     list(departement = dep,

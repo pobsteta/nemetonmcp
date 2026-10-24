@@ -24,7 +24,7 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist);
 execFileSync("node", [join(racine, "outils/generer-exemples.mjs")]);
 for (const v of ["selection", "atlas", "calcul", "plan"]) {
-  execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), v, join(racine, "vues/exemples", v), join(dist, v)]);
+  execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), v, join(racine, "clients/claude/vues/exemples", v), join(dist, v)]);
 }
 // Vue Calcul branchée sur un connecteur simulé : un vrai projet (pas un exemple).
 const direct = join(dist, "_donnees-calcul-direct");
@@ -34,17 +34,17 @@ execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), "calcul", direct
 // Vue Plan branchée sur un connecteur simulé, avec droit d'écriture.
 const planDirect = join(dist, "_donnees-plan-direct");
 mkdirSync(planDirect, { recursive: true });
-const planExemple = JSON.parse(readFileSync(join(racine, "vues/exemples/plan/plan.json"), "utf8"));
+const planExemple = JSON.parse(readFileSync(join(racine, "clients/claude/vues/exemples/plan/plan.json"), "utf8"));
 writeFileSync(join(planDirect, "plan.json"), JSON.stringify({ ...planExemple, exemple: false, peut_ecrire: true }));
-for (const f of ["plan.geojson", "contexte.geojson"]) writeFileSync(join(planDirect, f), readFileSync(join(racine, "vues/exemples/plan", f)));
+for (const f of ["plan.geojson", "contexte.geojson"]) writeFileSync(join(planDirect, f), readFileSync(join(racine, "clients/claude/vues/exemples/plan", f)));
 execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), "plan", planDirect, join(dist, "plan-direct")]);
 // Vue Atlas d'un vrai projet (pas un exemple), rafraîchie par le connecteur.
 const atlasDirect = join(dist, "_donnees-atlas-direct");
 mkdirSync(atlasDirect, { recursive: true });
-const atlasExemple = JSON.parse(readFileSync(join(racine, "vues/exemples/atlas/atlas.geojson"), "utf8"));
+const atlasExemple = JSON.parse(readFileSync(join(racine, "clients/claude/vues/exemples/atlas/atlas.geojson"), "utf8"));
 atlasExemple.nemeton = { ...atlasExemple.nemeton, exemple: false, project_id: "p-atlas", name: "Forêt publiée" };
 writeFileSync(join(atlasDirect, "atlas.geojson"), JSON.stringify(atlasExemple));
-writeFileSync(join(atlasDirect, "contexte.geojson"), readFileSync(join(racine, "vues/exemples/atlas/contexte.geojson")));
+writeFileSync(join(atlasDirect, "contexte.geojson"), readFileSync(join(racine, "clients/claude/vues/exemples/atlas/contexte.geojson")));
 execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), "atlas", atlasDirect, join(dist, "atlas-direct")]);
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".geojson": "application/geo+json" };
@@ -441,9 +441,11 @@ function planSimule(plan) {
       if (tool === "modifier_action") {
         const a = p.actions.find((x) => x.id === input.action_id);
         if (window.__conflit) {
-          // Un autre compte a modifié l'action entre-temps.
-          Object.assign(a, { priorite: "basse", modifie_par: "alice", version: "autre" });
-          return rendre({ ok: false, erreur: "L'action a été modifiée par alice pendant votre saisie.", classe: "nemetonclaude_conflit", candidats: [{ ...a }] });
+          // Un autre compte a modifié l'action entre-temps (__conflit : classe
+          // rendue, nemetonclaude_conflit pour un serveur d'avant 0.8.0).
+          const qui = window.__conflit === "nemetonmcp_conflit" ? "alice" : "bob";
+          Object.assign(a, { priorite: "basse", modifie_par: qui, version: "autre-" + qui });
+          return rendre({ ok: false, erreur: "L'action a été modifiée par " + qui + " pendant votre saisie.", classe: window.__conflit, candidats: [{ ...a }] });
         }
         if (input.attendu !== a.version) return rendre({ ok: false, erreur: "version inattendue " + input.attendu, classe: "x" });
         Object.assign(a, input.modifications, { version: a.version + "+" });
@@ -531,11 +533,16 @@ await test("Plan : transitions, édition, conflit, nouvelle action, propositions
   await page.waitForFunction(() => /enregistrée/.test(document.getElementById("message").textContent));
 
   // Conflit : la fiche montre la version actuelle et le dit.
-  await page.evaluate(() => { window.__conflit = true; });
+  await page.evaluate(() => { window.__conflit = "nemetonmcp_conflit"; });
   await page.fill("#f-commentaire", "Autre note");
   await page.click("#btn-enregistrer");
-  await page.waitForFunction(() => /alice/.test(document.getElementById("message-fiche").textContent));
+  await page.waitForFunction(() => /alice.*version actuelle/.test(document.getElementById("message-fiche").textContent));
   assert.equal(await page.inputValue("#f-priorite"), "basse");
+  // Même traitement pour l'ancien nom de la classe.
+  await page.evaluate(() => { window.__conflit = "nemetonclaude_conflit"; });
+  await page.fill("#f-commentaire", "Encore une note");
+  await page.click("#btn-enregistrer");
+  await page.waitForFunction(() => /bob.*version actuelle/.test(document.getElementById("message-fiche").textContent));
   await page.evaluate(() => { window.__conflit = false; });
   await page.click("#btn-fermer");
 

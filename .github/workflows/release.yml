@@ -109,7 +109,7 @@ jobs:
             printf '\n**Changements** : %s/%s/compare/%s...v%s\n' \
               "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$precedente" "$v" >> notes.md
           fi
-          git tag -a "v$v" -m "nemetonclaude $v"
+          git tag -a "v$v" -m "nemetonmcp $v"
           git push origin "v$v"
           gh release create "v$v" --title "v$v" --notes-file notes.md --verify-tag
           echo "Release v$v publiée." >> "$GITHUB_STEP_SUMMARY"

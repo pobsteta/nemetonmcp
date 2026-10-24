@@ -1,43 +1,67 @@
-# nemetonclaude 0.7.2 (2026-10-24)
+# nemetonmcp 0.8.0 (2026-10-24)
+
+- Le paquet R nemetonclaude devient nemetonmcp (dépôt pobsteta/nemetonmcp) :
+  `remotes::install_github("pobsteta/nemetonmcp", subdir = "r")`, serveur
+  lancé par `nemetonmcp::serveur_mcp()` ou `nemetonmcp::serveur_mcp_distant()`.
+- Variables d'environnement `NEMETON_CLAUDE_*` renommées `NEMETON_MCP_*`.
+  Les anciennes sont encore lues, avec un avertissement, quand les nouvelles
+  manquent.
+- Classes d'erreur `nemetonclaude_*` renommées `nemetonmcp_*`, options R
+  `nemetonclaude.*` renommées `nemetonmcp.*`, cache des vues sous
+  `~/.cache/R/nemetonmcp/`. La vue Plan d'actions reconnaît les deux noms du
+  conflit ; une vue Plan publiée avant 0.8.0 doit être republiée.
+- Connecteur distant : `NEMETON_MCP_AUDIENCE` accepte une liste d'audiences
+  (un jeton passe s'il en porte une), pour migrer de `nemeton-claude` vers
+  `nemeton-mcp` sans coupure. Le modèle de client Keycloak porte les deux
+  mappeurs ; l'audience par défaut reste `nemeton-claude`.
+- Déploiement : `nemetonmcp.service` et `/etc/nemetonmcp.env` remplacent
+  `nemeton-claude.service` et `/etc/nemeton-claude.env`.
+- Le plugin Claude Code, ses vues et son skill sont rangés sous
+  `clients/claude/`. La marketplace s'appelle `nemetonmcp` :
+  `claude plugin marketplace add pobsteta/nemetonmcp`, puis
+  `claude plugin install nemeton@nemetonmcp`. Le serveur MCP et le plugin
+  gardent le nom `nemeton`.
+
+# nemetonmcp 0.7.2 (2026-10-24)
 
 - Rename project from nemetonClaude to nemetonmcp
 
-# nemetonclaude 0.7.1 (2026-10-12)
+# nemetonmcp 0.7.1 (2026-10-12)
 
 - Atlas : calcule les notes des sous-indicateurs quand nemetonshiny ne les enregistre pas (#16)
 
-# nemetonclaude 0.7.0 (2026-10-12)
+# nemetonmcp 0.7.0 (2026-10-12)
 
 - Atlas : relit les résultats au connecteur à l'ouverture, sans republication (#15)
 - Skill nemeton-vues : réécrire le <title> de la copie avant de publier (#14)
 
-# nemetonclaude 0.6.0 (2026-10-12)
+# nemetonmcp 0.6.0 (2026-10-12)
 
 - Déclare le dépôt comme marketplace Claude Code (installation durable du plugin) (#13)
 
-# nemetonclaude 0.5.0 (2026-10-10)
+# nemetonmcp 0.5.0 (2026-10-10)
 
 - Expose croiser_onf et appliquer_ugf (UGF depuis le parcellaire ONF) (#12)
 - Retire un fichier de diagnostic testthat commité par erreur (#11)
 
-# nemetonclaude 0.4.0 (2026-10-07)
+# nemetonmcp 0.4.0 (2026-10-07)
 
 - Propose le GeoPackage au téléchargement dans l'Atlas, comme le CSV (#10)
 
-# nemetonclaude 0.3.1 (2026-10-07)
+# nemetonmcp 0.3.1 (2026-10-07)
 
 - Affiche « UGF n » pour les UGF qui gardent leur nom cadastral (#7)
 
-# nemetonclaude 0.3.0 (2026-10-07)
+# nemetonmcp 0.3.0 (2026-10-07)
 
 - Lot 3 : plan d'actions partagé (#6)
 
-# nemetonclaude 0.2.0 (2026-10-06)
+# nemetonmcp 0.2.0 (2026-10-06)
 
 - Lot 2 : connecteur distant (HTTP, Keycloak) et vue Calcul (#5)
 - Passe les actions GitHub en Node.js 24 et fixe Ubuntu 24.04 (#4)
 
-# nemetonclaude 0.1.0 (2026-10-06)
+# nemetonmcp 0.1.0 (2026-10-06)
 
 Première version : lot 1 du brief `specs/BRIEF-visualisation-nemeton-claude.md`.
 

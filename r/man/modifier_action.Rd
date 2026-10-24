@@ -16,7 +16,7 @@ modifier_action(projet, action_id, modifications, attendu = NULL)
 
 \item{attendu}{Optional \code{version} of the action as the caller last read
 it (field of \code{\link[=plan_actions]{plan_actions()}} actions): when the action changed since,
-nothing is written and the error \code{nemetonclaude_conflit} carries the
+nothing is written and the error \code{nemetonmcp_conflit} carries the
 current action.}
 }
 \value{

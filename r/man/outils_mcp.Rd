@@ -2,7 +2,7 @@
 % Please edit documentation in R/outils.R
 \name{outils_mcp}
 \alias{outils_mcp}
-\title{MCP tools of nemetonclaude}
+\title{MCP tools of nemetonmcp}
 \usage{
 outils_mcp()
 }
@@ -15,5 +15,5 @@ lot 1 tools (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_proj
 \code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}).
 }
 \description{
-MCP tools of nemetonclaude
+MCP tools of nemetonmcp
 }

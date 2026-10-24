@@ -200,7 +200,7 @@ detail_indicateur <- function(projet, ug, code, langue = "fr") {
       ligne <- which(tolower(noms) == tolower(trimws(ug)))
     }
     if (length(ligne) != 1L) {
-      .abort("Unit\u00e9 de gestion {.val {ug}} introuvable.", "nemetonclaude_ug_introuvable",
+      .abort("Unit\u00e9 de gestion {.val {ug}} introuvable.", "nemetonmcp_ug_introuvable",
              candidats = utils::head(as.character(df$ug_id), 20))
     }
     code <- tolower(trimws(code))
@@ -208,7 +208,7 @@ detail_indicateur <- function(projet, ug, code, langue = "fr") {
     ref <- NULL
     for (f in cat_) for (i in f$indicateurs) if (tolower(i$code) == code) ref <- c(i, list(famille = f$code))
     if (is.null(ref)) {
-      .abort("Indicateur {.val {code}} inconnu.", "nemetonclaude_indicateur_inconnu",
+      .abort("Indicateur {.val {code}} inconnu.", "nemetonmcp_indicateur_inconnu",
              candidats = unlist(lapply(cat_, function(f) vapply(f$indicateurs, `[[`, "", "code"))))
     }
     val <- function(col) if (col %in% names(df)) df[[col]][ligne] else NA
