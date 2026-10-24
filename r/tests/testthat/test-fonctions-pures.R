@@ -190,3 +190,63 @@ test_that("outils_mcp sert un seul exporter_gpkg, celui qui sait zipper", {
   o <- outils_mcp()[[which(noms == "exporter_gpkg")]]
   expect_true("zip" %in% names(o@arguments@properties))
 })
+
+entete_fiche <- list(
+  project_id = "p1", name = "Dabo", global_score = 64.83, ndp_level = 1L,
+  ndp_name = "Observation", confidence = 0.167, updated_at = "2026-10-07 10:19:49",
+  langue = "fr", n_ugf = 4L, n_parcelles = 4L,
+  familles = list(list(code = "C", nom = "Carbone", score = 70),
+                  list(code = "B", nom = "Biodiversité", score = 85.5),
+                  list(code = "W", nom = "Eau", score = 53.5),
+                  list(code = "T", nom = "Trame", score = 50.3),
+                  list(code = "P", nom = "Paysage", score = 87.2))
+)
+
+test_that(".resume_plan compte les statuts et ordonne les prochaines actions", {
+  actions <- list(
+    list(annee = 2030L, type = "plantation", statut = "validee", priorite = "basse", ug_label = "UGF 2"),
+    list(annee = 2027L, type = "eclaircie", statut = "realisee", priorite = "haute", ug_label = "UGF 1"),
+    list(annee = 2028L, type = "observation", statut = "proposee", priorite = "basse", ug_label = "UGF 3"),
+    list(annee = 2028L, type = "protection", statut = "planifiee", priorite = "haute", ug_label = "UGF 4")
+  )
+  r <- .resume_plan(actions)
+  expect_equal(r$n_actions, 4)
+  expect_equal(r$par_statut$realisee, 1L)
+  expect_equal(vapply(r$prochaines, `[[`, "", "type"), c("protection", "observation", "plantation"))
+  vide <- .resume_plan(list())
+  expect_equal(vide$n_actions, 0)
+  expect_length(vide$prochaines, 0)
+  expect_equal(.json(vide$par_statut), "{}")
+})
+
+test_that(".fiche classe les familles et rend un display_report complet", {
+  plan <- .resume_plan(list(list(annee = 2028L, type = "eclaircie", statut = "validee",
+                                 priorite = "haute", ug_label = "UGF 1")))
+  f <- .fiche(entete_fiche, plan, surface_ha = 12.345)
+  expect_equal(vapply(f$familles, `[[`, "", "code"), c("P", "B", "C", "W", "T"))
+  expect_equal(f$forces, c("P", "B", "C"))
+  expect_equal(f$faiblesses, c("T", "W", "C"))
+  expect_equal(f$surface_ha, 12.35)
+  r <- f$display_report
+  expect_equal(r$title, "Dabo — fiche Nemeton")
+  expect_length(r$kpis, 4)
+  expect_equal(r$kpis[[1]]$value, "64,8 / 100")
+  expect_equal(r$kpis[[3]]$value, "17 %")
+  expect_equal(r$chart$type, "bar")
+  expect_equal(r$chart$series[[1]]$data, c(70, 85.5, 53.5, 50.3, 87.2))
+  expect_equal(r$table$rows[[1]], list("Paysage", "P", 87.2))
+  expect_match(r$markdown, "2028 : eclaircie, UGF 1", fixed = TRUE)
+  expect_match(f$texte, "^Dabo : score global 65 sur 100")
+})
+
+test_that(".fiche se passe du plan et parle anglais", {
+  e <- entete_fiche
+  e$langue <- "en"
+  e$confidence <- NULL
+  f <- .fiche(e)
+  expect_null(f$plan)
+  expect_equal(f$display_report$kpis[[1]]$value, "64.8 / 100")
+  expect_equal(f$display_report$kpis[[3]]$value, "—")
+  expect_false(grepl("Next actions", f$display_report$markdown))
+  expect_match(f$texte, "^Dabo: overall score 65 out of 100")
+})
