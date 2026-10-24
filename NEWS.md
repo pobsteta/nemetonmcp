@@ -1,3 +1,7 @@
+# nemetonclaude 0.7.2 (2026-10-24)
+
+- Rename project from nemetonClaude to nemetonmcp
+
 # nemetonclaude 0.7.1 (2026-10-12)
 
 - Atlas : calcule les notes des sous-indicateurs quand nemetonshiny ne les enregistre pas (#16)
