@@ -12,7 +12,7 @@
   fr = list(fiche = "fiche Nemeton", score = "Score global", ndp = "Niveau NDP",
             confiance = "Confiance", ugf = "UGF", famille = "Famille", code = "Code",
             note = "Score", forces = "Points forts", faiblesses = "Points faibles",
-            prochaines = "Prochaines actions", aucune = "Aucune action à venir.",
+            prochaines = "Prochaines actions", aucune = "Aucune action \u00e0 venir.",
             calcul = "Calcul", maj = "Indicateurs du", actions = "actions",
             sur = "sur 100"),
   en = list(fiche = "Nemeton sheet", score = "Overall score", ndp = "NDP level",
@@ -25,9 +25,9 @@
 
 # Nombre a la francaise (virgule decimale, espace fine des milliers).
 .nombre <- function(x, n = 1, langue = "fr") {
-  if (is.null(x) || !length(x) || is.na(x)) return("—")
+  if (is.null(x) || !length(x) || is.na(x)) return("\u2014")
   formatC(round(as.numeric(x), n), format = "f", digits = n,
-          big.mark = if (langue == "fr") " " else ",",
+          big.mark = if (langue == "fr") "\u202f" else ",",
           decimal.mark = if (langue == "fr") "," else ".")
 }
 
@@ -74,12 +74,12 @@
   confiance <- as.numeric(entete$confidence %||% NA)
   kpis <- list(
     list(label = tx$score, value = paste(.nombre(entete$global_score, 1, langue), "/ 100")),
-    list(label = tx$ndp, value = paste0(entete$ndp_level %||% "—",
-                                        if (!is.null(entete$ndp_name)) paste0(" · ", entete$ndp_name))),
-    list(label = tx$confiance, value = if (is.na(confiance)) "—" else
-      paste0(.nombre(100 * confiance, 0, langue), " %")),
-    list(label = tx$ugf, value = paste0(entete$n_ugf %||% "—",
-                                        if (!is.na(surface_ha)) paste0(" · ", .nombre(surface_ha, 1, langue), " ha")))
+    list(label = tx$ndp, value = paste0(entete$ndp_level %||% "\u2014",
+                                        if (!is.null(entete$ndp_name)) paste0(" \u00b7 ", entete$ndp_name))),
+    list(label = tx$confiance, value = if (is.na(confiance)) "\u2014" else
+      paste0(.nombre(100 * confiance, 0, langue), "\u00a0%")),
+    list(label = tx$ugf, value = paste0(entete$n_ugf %||% "\u2014",
+                                        if (!is.na(surface_ha)) paste0(" \u00b7 ", .nombre(surface_ha, 1, langue), "\u00a0ha")))
   )
 
   md <- c(
@@ -96,7 +96,7 @@
   if (!is.null(entete$updated_at)) md <- c(md, "", sprintf("_%s %s._", tx$maj, entete$updated_at))
 
   rapport <- list(
-    title = sprintf("%s — %s", entete$name %||% entete$project_id, tx$fiche),
+    title = sprintf("%s \u2014 %s", entete$name %||% entete$project_id, tx$fiche),
     kpis = kpis,
     chart = list(type = "bar",
                  categories = vapply(fam, function(f) as.character(f$nom %||% f$code), ""),
@@ -179,7 +179,7 @@ fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
     if (!depuis_cache) {
       lu <- .lire_projet(id, langue)
       if (is.null(lu$familles) || !nrow(lu$familles)) {
-        .abort(c("Projet {.val {id}} : aucun indicateur calculé.",
+        .abort(c("Projet {.val {id}} : aucun indicateur calcul\u00e9.",
                  i = "Lancer {.code lancer_calcul} puis suivre {.code etat_calcul}."),
                "nemetonshiny_sans_indicateurs")
       }
