@@ -1,6 +1,6 @@
 Package: nemetonmcp
 Title: Connecteur MCP de Nemeton
-Version: 0.8.0
+Version: 0.8.1
 Authors@R: person("Pascal", "Obstetar", email = "pascal.obstetar@gmail.com",
     role = c("aut", "cre"))
 Description: Etend le serveur MCP de 'nemetonshiny' avec les outils du

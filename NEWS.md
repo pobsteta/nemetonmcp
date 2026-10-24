@@ -1,3 +1,7 @@
+# nemetonmcp 0.8.1 (2026-10-24)
+
+- Document d'architecture Nemeton × LLM (#17)
+
 # nemetonmcp 0.8.0 (2026-10-24)
 
 - Le paquet R nemetonclaude devient nemetonmcp (dépôt pobsteta/nemetonmcp) :
