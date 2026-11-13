@@ -119,8 +119,10 @@ CONTRAT_NEMETONSHINY <- c(
 test_that("nemetonmcp n'appelle aucun objet interne hors contrat", {
   expect_length(CONTRAT_NEMETONSHINY, 35L)
   dossier <- testthat::test_path("..", "..", "R")
-  skip_if_not(dir.exists(dossier), "sources R absentes (paquet installe)")
-  code <- unlist(lapply(list.files(dossier, pattern = "\\.R$", full.names = TRUE), readLines, warn = FALSE))
+  sources <- list.files(dossier, pattern = "\\.R$", full.names = TRUE)
+  # Paquet installe (R CMD check, couverture) : R/ ne contient pas les sources.
+  skip_if_not(length(sources) > 0, "sources R absentes (paquet installe)")
+  code <- unlist(lapply(sources, readLines, warn = FALSE))
   appels <- unique(unlist(regmatches(code, gregexpr('\\.ns\\("[^"]+"\\)', code))))
   appels <- sub('^\\.ns\\("(.*)"\\)$', "\\1", appels)
   expect_true(length(appels) > 0)
