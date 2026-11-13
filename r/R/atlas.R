@@ -33,8 +33,11 @@
   })
 }
 
-# Notes 0-100 des sous-indicateurs (`indicateur_*_norm`). nemetonshiny ne
-# les enregistre pas toujours : les completer ici avec la normalisation du
+# Notes 0-100 des sous-indicateurs (`indicateur_*_norm`). Depuis la 2026.10.5,
+# nemetonshiny les enregistre a chaque sauvegarde et les ajoute a la lecture
+# (`projet_lire()`) ; les notes presentes sont reprises telles quelles. Ce
+# complement reste en filet pour une version plus ancienne : les notes
+# absentes sont calculees avec la normalisation du
 # coeur (`nemeton::normalize_indicator()`, bornes absolues par indicateur,
 # celle qu'utilise `create_family_index()`), le statut de l'indicateur
 # precisant parfois l'unite (P2). Seuls les indicateurs declares par le coeur
