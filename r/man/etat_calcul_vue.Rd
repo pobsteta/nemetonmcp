@@ -10,7 +10,9 @@ etat_calcul_vue(projet)
 \item{projet}{Project id or name.}
 }
 \value{
-JSON, as nemetonshiny's \code{etat_calcul}.
+JSON, as nemetonshiny's \code{etat_calcul} (also for a failed job,
+\code{ok = false} with \code{statut = "echec"}), plus the durations. A tool error
+(unknown project...) comes back unchanged, marked as an error.
 }
 \description{
 nemetonshiny's \code{etat_calcul}, plus \code{ecoule_s} (seconds since launch, or

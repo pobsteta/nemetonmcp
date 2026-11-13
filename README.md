@@ -51,8 +51,21 @@ install.packages(c("mcptools", "happign"))  # happign : repli cadastre, BD Forê
 Le serveur se lance par `Rscript -e "nemetonmcp::serveur_mcp()"` (déjà
 déclaré dans `clients/claude/.mcp.json`). Variables utiles : `NEMETON_PROJECT_DIR` (dossier
 des projets, comme nemetonshiny) et `NEMETON_MCP_VUES_DIR` (dossier des
-fichiers GeoJSON écrits pour les vues, par défaut le cache utilisateur R). Le
-serveur doit tourner dans une locale UTF-8.
+fichiers GeoJSON écrits pour les vues, par défaut le cache utilisateur R) et
+`NEMETON_MCP_JETONS_DIR` (jetons de confirmation des écritures, un fichier par
+jeton ; à poser sur un dossier inscriptible, `/srv/nemeton/mcp/jetons` pour le
+connecteur distant). Au démarrage, `serveur_mcp()` et `serveur_mcp_distant()`
+posent `TZ=Europe/Paris` et une locale UTF-8 (`C.UTF-8`, à défaut
+`en_US.UTF-8`) si celle du processus ne l'est pas.
+
+Les outils qui modifient un projet existant (`appliquer_ugf`, `croiser_onf`,
+`ajouter_action`, `modifier_action`, `supprimer_action`) fonctionnent en deux
+temps. Le premier appel n'écrit rien : il rend l'erreur `confirmation_requise`
+avec un aperçu et un jeton. Le second, avec les mêmes arguments et le jeton
+(usage unique, 10 minutes), écrit. Les erreurs sortent en `isError` avec
+`code` (sur lequel décider), `erreur` et `action` (la suite à proposer).
+Les chemins de fichier passés aux outils doivent être absolus : ils font
+partie de l'empreinte du jeton.
 
 ### Plugin Claude Code
 

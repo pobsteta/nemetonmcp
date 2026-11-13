@@ -4,21 +4,44 @@
 
 ID <- "20261006_101500_test"
 
-projet_test <- function(env = parent.frame()) {
+# Le registre de jetons de nemetonshiny est reel (dossier temporaire) ; sa
+# garde d'ecriture (calcul en cours, verrou, projet ancien) suppose un projet
+# complet : elle est remplacee par `garde`, qui ne refuse rien par defaut.
+projet_test <- function(env = parent.frame(), garde = function(id) invisible(NULL)) {
   racine <- withr::local_tempdir(.local_envir = env)
   dir.create(file.path(racine, ID, "data"), recursive = TRUE)
   withr::local_options(nemeton.app_options = list(project_dir = racine),
                        nemetonmcp.utilisateur = "gest", nemetonmcp.peut_ecrire = TRUE,
                        .local_envir = env)
+  withr::local_envvar(NEMETON_MCP_JETONS_DIR = file.path(racine, "jetons"), .local_envir = env)
+  vrai_ns <- .ns
   testthat::local_mocked_bindings(
     .resoudre_projet = function(projet) ID,
     .ug_ids_projet = function(id) list(ids = c("u1", "u2"), ug = NULL,
-                                       projet = list(metadata = list(name = "Forêt test"))),
+                                       projet = list(metadata = list(name = "For\u00eat test"))),
+    .ns = function(nom) {
+      if (identical(nom, ".mcp_garde_ecriture")) return(function(id, call = NULL) garde(id))
+      if (identical(nom, ".mcp_jeton_consommer")) {
+        return(function(jeton, outil, projet, lien) {
+          vrai_ns(".mcp_jeton_consommer")(jeton, outil, projet, lien, garde = garde)
+        })
+      }
+      vrai_ns(nom)
+    },
     .env = env)
   racine
 }
 
 lire <- function(json) jsonlite::fromJSON(json, simplifyVector = FALSE)
+
+# Ecriture en deux temps : l'apercu (confirmation_requise, rien d'ecrit),
+# puis le meme appel avec le jeton.
+deux_temps <- function(f, ...) {
+  r <- lire(f(...))
+  testthat::expect_equal(r$code, "confirmation_requise")
+  testthat::expect_true(nzchar(r$jeton))
+  lire(f(..., jeton = r$jeton))
+}
 
 test_that(".normaliser_action garde les champs connus et convertit l'annee civile", {
   a <- .normaliser_action(list(ug_id = "u1", type = "eclaircie", annee = 2031, id = "pirate",
@@ -46,10 +69,19 @@ test_that(".action_pour_vue ajoute l'annee civile, le libelle et l'origine Claud
 
 test_that("ajouter, lire, modifier et supprimer une action ecrivent le plan et son historique", {
   projet_test()
-  r <- lire(ajouter_action("x", list(ug_id = "u1", type = "eclaircie", annee = 2030,
-                                     priorite = "haute", objectifs_lies = list("B"),
-                                     source = list(origine = "claude"))))
+  nouvelle <- list(ug_id = "u1", type = "eclaircie", annee = 2030, priorite = "haute",
+                   objectifs_lies = list("B"), source = list(origine = "claude"))
+  # Premier temps : apercu, rien n'est ecrit.
+  ap <- lire(ajouter_action("x", nouvelle))
+  expect_false(ap$ok)
+  expect_equal(ap$code, "confirmation_requise")
+  expect_equal(ap$apercu$operation, "ajout")
+  expect_equal(ap$apercu$annee, 2030)
+  expect_length(lire(plan_actions("x", geojson = FALSE))$actions, 0)
+  r <- lire(ajouter_action("x", nouvelle, jeton = ap$jeton))
   expect_true(r$ok)
+  # Le jeton est a usage unique.
+  expect_equal(lire(ajouter_action("x", nouvelle, jeton = ap$jeton))$code, "jeton_invalide")
   a <- r$action
   expect_equal(a$statut, "proposee")
   expect_equal(a$cree_par, "gest")
@@ -60,12 +92,12 @@ test_that("ajouter, lire, modifier et supprimer une action ecrivent le plan et s
   expect_length(p$actions, 1)
   # La version rendue a l'ajout est celle que relit plan_actions().
   expect_equal(p$actions[[1]]$version, a$version)
-  expect_equal(p$nom, "Forêt test")
+  expect_equal(p$nom, "For\u00eat test")
   expect_true(p$peut_ecrire)
   expect_true("eclaircie" %in% unlist(p$catalogue$types))
   expect_equal(p$historique[[1]]$op, "create")
 
-  m <- lire(modifier_action("x", a$id, list(statut = "validee", annee = 2031), attendu = a$version))
+  m <- deux_temps(modifier_action, "x", a$id, list(statut = "validee", annee = 2031), attendu = a$version)
   expect_true(m$ok)
   expect_false(identical(m$action$version, a$version))
   expect_equal(m$action$statut, "validee")
@@ -76,12 +108,14 @@ test_that("ajouter, lire, modifier et supprimer une action ecrivent le plan et s
   k <- lire(modifier_action("x", a$id, list(priorite = "basse"), attendu = a$version))
   expect_false(k$ok)
   expect_equal(k$classe, "nemetonmcp_conflit")
+  expect_equal(k$code, "conflit")
+  expect_true(nzchar(k$action))
   expect_equal(k$candidats[[1]]$statut, "validee")
 
   champs <- vapply(lire(plan_actions("x", geojson = FALSE))$historique, function(e) e$champ %||% "", "")
   expect_true(all(c("statut", "annee_cible") %in% champs))
 
-  s <- lire(supprimer_action("x", a$id))
+  s <- deux_temps(supprimer_action, "x", m$action$id)
   expect_true(s$ok)
   p <- lire(plan_actions("x", geojson = FALSE))
   expect_length(p$actions, 0)
@@ -105,16 +139,41 @@ test_that("une action invalide ou un compte sans ecriture sont refuses sans rien
   expect_length(lire(plan_actions("x", geojson = FALSE))$actions, 0)
 })
 
-test_that("un projet en cours d'edition dans l'application n'est pas modifie", {
-  projet_test()
-  vrai_ns <- .ns
-  local_mocked_bindings(.ns = function(nom) {
-    if (identical(nom, "lock_status")) function(id) list(stale = FALSE, holder_label = "Alice")
-    else vrai_ns(nom)
+test_that("un projet occupe n'est pas modifie ; le refus a la confirmation garde le jeton", {
+  occupe <- FALSE
+  projet_test(garde = function(id) {
+    if (occupe) rlang::abort("Projet en cours d'\u00e9dition dans l'application (Alice).",
+                             class = c("nemetonshiny_projet_verrouille", "nemetonshiny_erreur"))
   })
-  r <- lire(ajouter_action("x", list(ug_id = "u1", type = "eclaircie", annee = 2030)))
-  expect_equal(r$classe, "nemetonshiny_projet_verrouille")
+  a <- list(ug_id = "u1", type = "eclaircie", annee = 2030)
+  occupe <- TRUE
+  r <- lire(ajouter_action("x", a))
+  expect_equal(r$code, "projet_verrouille")
   expect_match(r$erreur, "Alice")
+  # Apercu obtenu projet libre, confirmation refusee projet occupe : le
+  # jeton reste valable et sert une fois le projet libere.
+  occupe <- FALSE
+  ap <- lire(ajouter_action("x", a))
+  occupe <- TRUE
+  expect_equal(lire(ajouter_action("x", a, jeton = ap$jeton))$code, "projet_verrouille")
+  occupe <- FALSE
+  expect_true(lire(ajouter_action("x", a, jeton = ap$jeton))$ok)
+  expect_length(lire(plan_actions("x", geojson = FALSE))$actions, 1)
+})
+
+test_that("un jeton ne sert pas si l'action a change ou pour une autre ecriture", {
+  projet_test()
+  a <- deux_temps(ajouter_action, "x", list(ug_id = "u1", type = "eclaircie", annee = 2030))$action
+  ap <- lire(modifier_action("x", a$id, list(priorite = "basse")))
+  # Quelqu'un modifie l'action entre l'apercu et la confirmation.
+  deux_temps(modifier_action, "x", a$id, list(statut = "validee"))
+  expect_equal(lire(modifier_action("x", a$id, list(priorite = "basse"), jeton = ap$jeton))$code,
+               "jeton_invalide")
+  # Un jeton de suppression ne vaut pas pour une modification.
+  sup <- lire(supprimer_action("x", a$id))
+  expect_equal(lire(modifier_action("x", a$id, list(priorite = "basse"), jeton = sup$jeton))$code,
+               "jeton_invalide")
+  expect_length(lire(plan_actions("x", geojson = FALSE))$actions, 1)
 })
 
 test_that("profils_experts sert les profils YAML de nemetonshiny", {

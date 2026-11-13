@@ -207,3 +207,31 @@ test("charger : un .geojson absent est cherché en .geo.json (extension servie p
     assert.equal(await NV.charger("absent.json"), null);
   } finally { globalThis.fetch = avant; }
 });
+
+test("lireErreurOutil relit le JSON d'une erreur isError rejetée (tool_error)", () => {
+  const p = NV.lireErreurOutil({ code: "tool_error", message: 'Tool error: {"ok":false,"code":"conflit","classe":"nemetonmcp_conflit","erreur":"Modifiée","candidats":[{"id":"a"}]}' });
+  assert.equal(p.code, "conflit");
+  const e = NV.erreurNemeton(p);
+  assert.equal(e.nemeton, true);
+  assert.equal(e.classe, "nemetonmcp_conflit");
+  assert.equal(e.message, "Modifiée");
+  assert.deepEqual(e.candidats, [{ id: "a" }]);
+  assert.equal(NV.lireErreurOutil({ code: "server_unavailable", message: "indisponible" }), null);
+  assert.equal(NV.lireErreurOutil(null), null);
+});
+
+test("ecrire refait l'appel avec le jeton d'une confirmation requise, pas pour une autre erreur", async () => {
+  const appels = [];
+  const mcp = {
+    callTool: (s, outil, entree) => {
+      appels.push(entree);
+      if (!entree.jeton) return Promise.reject({ code: "tool_error", message: JSON.stringify({ ok: false, code: "confirmation_requise", jeton: "j1", erreur: "Confirmation requise" }) });
+      return Promise.resolve({ payload: { ok: true, action: { id: "a1" } } });
+    }
+  };
+  const r = await NV.ecrire(mcp, "ajouter_action", { projet: "p" });
+  assert.equal(r.action.id, "a1");
+  assert.deepEqual(appels, [{ projet: "p" }, { projet: "p", jeton: "j1" }]);
+  const refus = { callTool: () => Promise.reject({ code: "tool_error", message: '{"ok":false,"code":"droits","erreur":"Non"}' }) };
+  await assert.rejects(NV.ecrire(refus, "ajouter_action", {}), (e) => e.code === "droits");
+});

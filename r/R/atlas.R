@@ -141,7 +141,7 @@
 #' @export
 vue_atlas <- function(projet, langue = "fr", tolerance_m = 1, bruts = FALSE,
                       inclure_geojson = FALSE) {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     id <- .resoudre_projet(projet)
     langue <- if (identical(langue, "en")) "en" else "fr"
     lu <- .lire_projet(id, langue)
@@ -188,7 +188,7 @@ vue_atlas <- function(projet, langue = "fr", tolerance_m = 1, bruts = FALSE,
 #'   label, help text, family.
 #' @export
 detail_indicateur <- function(projet, ug, code, langue = "fr") {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     id <- .resoudre_projet(projet)
     langue <- if (identical(langue, "en")) "en" else "fr"
     lu <- .lire_projet(id, langue)

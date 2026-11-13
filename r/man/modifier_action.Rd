@@ -4,7 +4,7 @@
 \alias{modifier_action}
 \title{Change fields of an action}
 \usage{
-modifier_action(projet, action_id, modifications, attendu = NULL)
+modifier_action(projet, action_id, modifications, attendu = NULL, jeton = NULL)
 }
 \arguments{
 \item{projet}{Project id or name.}
@@ -16,12 +16,13 @@ modifier_action(projet, action_id, modifications, attendu = NULL)
 
 \item{attendu}{Optional \code{version} of the action as the caller last read
 it (field of \code{\link[=plan_actions]{plan_actions()}} actions): when the action changed since,
-nothing is written and the error \code{nemetonmcp_conflit} carries the
-current action.}
+nothing is written and the error \code{conflit} carries the current action.}
+
+\item{jeton}{Confirmation token of the first call.}
 }
 \value{
 JSON: the action as stored.
 }
 \description{
-Change fields of an action
+Two steps (confirmation token), as \code{\link[=ajouter_action]{ajouter_action()}}.
 }
