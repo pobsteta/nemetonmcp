@@ -196,7 +196,8 @@
       contexte_ug: "Contexte : {ug} · {couche}", contexte_projet: "Contexte : projet · {couche}",
       erreur_ia: "Claude n'a pas pu répondre : {message}",
       erreur_donnees: "Les cartes n'ont pas pu être chargées : {message}", erreur_image: "Image introuvable : {image}",
-      date_couche: "{date}", ha: "{n} ha"
+      date_couche: "{date}", ha: "{n} ha",
+      contexte_gris: "Hors des unités de gestion (au-delà de {m} m) : en grisé, pour le contexte"
     },
     en: {
       eyebrow: "Project maps", exemple: "Fictional data", couches: "Layers",
@@ -212,7 +213,8 @@
       contexte_ug: "Context: {ug} · {couche}", contexte_projet: "Context: project · {couche}",
       erreur_ia: "Claude could not answer: {message}",
       erreur_donnees: "The maps could not be loaded: {message}", erreur_image: "Image not found: {image}",
-      date_couche: "{date}", ha: "{n} ha"
+      date_couche: "{date}", ha: "{n} ha",
+      contexte_gris: "Outside the management units (beyond {m} m): greyed, for context"
     }
   });
 
@@ -396,6 +398,11 @@
         h = "<div class='rs__biv-cadre'><span class='rs__biv-y'>" + E(leg.axe_y.nom) + " " + E(NV.nombre(by[0], 1)) + " → " + E(NV.nombre(by[1], 1)) + " " + E(leg.axe_y.unite || "") +
           "</span><div class='rs__biv' style='grid-template-columns:repeat(" + n + ",12px)'>" + cases.join("") + "</div><span class='rs__biv-x'>" +
           E(leg.axe_x.nom) + " " + E(NV.nombre(bx[0], 0)) + " → " + E(NV.nombre(bx[1], 0)) + " " + E(leg.axe_x.unite || "") + "</span></div>";
+      }
+      if (h && man.contexte) {
+        h += "<div class='rs__leg-ligne' style='margin-top:6px'><span class='rs__case' style='background:#9E9E9E;opacity:" +
+          Number(man.contexte.opacite || 0.35) + "'></span><span class='nv-muet'>" +
+          E(NV.t("contexte_gris", { m: NV.nombre(man.contexte.marge_m || 0, 0) })) + "</span></div>";
       }
       $("titre-carte").textContent = c.libelle + (c.date ? " · " + dateLisible(c.date) : "");
       $("source-carte").textContent = c.source || ""; $("source-carte").hidden = !c.source;

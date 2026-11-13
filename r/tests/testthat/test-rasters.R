@@ -81,6 +81,47 @@ test_that(".rendre_png agrege un raster plus grand que max_px", {
   expect_lte(max(rd$largeur, rd$hauteur), 110)
 })
 
+test_that(".rendre_png grise le contexte hors des unites, garde les couleurs dedans", {
+  skip_if_not_installed("png")
+  # Raster 300 x 200 m entierement rouge ; une seule unite sur le tiers ouest.
+  r <- raster_lambert(rep(1, 600))
+  leg <- .legende_classes(1, "fort", "#ff0000")
+  ug <- sf::st_sf(ug_id = "ug_1", geometry = sf::st_sfc(sf::st_polygon(list(rbind(
+    c(843000, 6685000), c(843100, 6685000), c(843100, 6685200), c(843000, 6685200), c(843000, 6685000)))),
+    crs = 2154))
+  f <- withr::local_tempfile(fileext = ".png")
+  .rendre_png(r, leg, f, ugs = ug, marge_m = 0)
+  img <- png::readPNG(f)
+  milieu <- round(dim(img)[1] / 2)
+  ouest <- img[milieu, 2, ]
+  est <- img[milieu, dim(img)[2] - 1, ]
+  # Dedans : rouge plein, opaque.
+  expect_equal(unname(ouest), c(1, 0, 0, 1), tolerance = 0.01)
+  # Dehors : gris (luminance du rouge), semi-transparent.
+  expect_equal(est[1], est[2], tolerance = 0.01)
+  expect_equal(est[1], 0.299, tolerance = 0.01)
+  expect_equal(est[4], .OPACITE_CONTEXTE, tolerance = 0.01)
+  # Sans unites : rendu d'origine, tout en rouge opaque.
+  f2 <- withr::local_tempfile(fileext = ".png")
+  .rendre_png(r, leg, f2)
+  img2 <- png::readPNG(f2)
+  expect_equal(unname(img2[milieu, dim(img2)[2] - 1, ]), c(1, 0, 0, 1), tolerance = 0.01)
+})
+
+test_that(".masque_ugs etend les unites de la marge, en metres vrais", {
+  r <- raster_lambert(rep(1, 600))
+  m <- terra::project(r, "EPSG:3857", method = "near")
+  ug <- sf::st_sf(ug_id = "ug_1", geometry = sf::st_sfc(sf::st_polygon(list(rbind(
+    c(843000, 6685000), c(843100, 6685000), c(843100, 6685200), c(843000, 6685200), c(843000, 6685000)))),
+    crs = 2154))
+  sans <- sum(.masque_ugs(m, ug, 0))
+  avec <- sum(.masque_ugs(m, ug, 50))
+  expect_gt(sans, 0)
+  expect_lt(sans, length(terra::values(m[[1]], mat = FALSE)))
+  expect_gt(avec, sans)
+  expect_null(.masque_ugs(m, NULL))
+})
+
 test_that(".stats_ug et .serie_frise_ug resument une couche par unite", {
   # Deux unites : la moitie ouest et la moitie est du raster.
   ugs <- sf::st_sf(ug_id = c("ug_1", "ug_2"), geometry = sf::st_sfc(
