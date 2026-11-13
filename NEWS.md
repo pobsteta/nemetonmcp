@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.1 (2026-11-13)
+
+- Versions calendaires AAAA.M.N, comme marculus (#26)
+
 # nemetonmcp 0.9.4 (2026-11-13)
 
 - Fige Remotes: sur nemetonshiny v2026.10.18 (#25)
