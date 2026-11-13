@@ -141,6 +141,10 @@
       try { return Promise.resolve(JSON.parse(bloc.textContent)); } catch (e) { return Promise.reject(e); }
     }
     return fetch(nom, { cache: "no-cache" }).then(function (r) {
+      // Le service d'artéfacts ne sert pas l'extension .geojson : un GeoJSON
+      // y est publié en .geo.json (sans collision avec plan.json, par
+      // exemple). On essaie ce nom-là à défaut.
+      if (r.status === 404 && /\.geojson$/.test(nom)) return NV.charger(nom.replace(/\.geojson$/, ".geo.json"));
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(nom + " : HTTP " + r.status);
       return r.json();
