@@ -1,3 +1,7 @@
+# nemetonmcp 0.9.2 (2026-11-13)
+
+- Cartes : coupes rases (sol nu FORDEAD) en blanc pur (#23)
+
 # nemetonmcp 0.9.1 (2026-11-13)
 
 - Vues : GeoJSON publiés en .geo.json, retouches de la vue Cartes (#22)
