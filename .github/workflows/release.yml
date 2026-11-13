@@ -5,13 +5,17 @@
 #
 #   1. Si la version de r/DESCRIPTION n'a pas encore d'étiquette (montée à la
 #      main dans la PR, ou première version), elle est publiée telle quelle.
-#   2. Sinon, la version monte selon l'étiquette de la PR fusionnée :
-#        version:majeure → X+1.0.0     version:mineure → X.Y+1.0
-#        version:aucune  → rien        sans étiquette  → X.Y.Z+1 (correctif)
+#   2. Sinon, nouvelle version calendaire AAAA.M.N, comme marculus
+#      (vAAAA.MM.N) : année et mois UTC du jour, N = compteur du mois qui
+#      repart à 1 chaque mois (2026.11.1, 2026.11.2, … puis 2026.12.1), d'après
+#      les étiquettes v* existantes. Mois sans zéro initial (2027.1.1) : semver
+#      et R l'exigent. Étiquette de la PR fusionnée :
+#        version:aucune → pas de version      toute autre, ou aucune → AAAA.M.N
+#      (version:majeure et version:mineure n'ont plus d'effet.)
 #      outils/version.mjs écrit la version dans r/DESCRIPTION, package.json,
 #      plugin.json et ajoute à NEWS.md la liste des PR depuis la dernière
-#      version ; le commit « Version X.Y.Z » est poussé sur main.
-#   3. Étiquette annotée vX.Y.Z et release GitHub, avec la section de NEWS.md.
+#      version ; le commit « Version AAAA.M.N » est poussé sur main.
+#   3. Étiquette annotée vAAAA.M.N et release GitHub, avec la section de NEWS.md.
 #
 # Un push fait avec GITHUB_TOKEN ne relance aucun workflow : pas de boucle.
 name: release
@@ -24,10 +28,10 @@ on:
   workflow_dispatch:
     inputs:
       niveau:
-        description: "Montée de version (auto : selon l'étiquette de la dernière PR)"
+        description: "Version calendaire (auto : sauf si la dernière PR porte version:aucune)"
         type: choice
         default: auto
-        options: [auto, correctif, mineure, majeure, aucune]
+        options: [auto, publier, aucune]
 
 permissions:
   contents: write
@@ -77,10 +81,8 @@ jobs:
               --jq '[.[0].labels[]?.name] | join(",")' 2>/dev/null || true)"
             echo "Étiquettes de la PR : ${etiquettes:-aucune}"
             case ",$etiquettes," in
-              *,version:aucune,*)  niveau=aucune ;;
-              *,version:majeure,*) niveau=majeure ;;
-              *,version:mineure,*) niveau=mineure ;;
-              *)                   niveau=correctif ;;
+              *,version:aucune,*) niveau=aucune ;;
+              *)                  niveau=publier ;;
             esac
           fi
           if [ "$niveau" = aucune ]; then
@@ -92,7 +94,7 @@ jobs:
             exit 0
           fi
 
-          n="$(node outils/version.mjs monter "$niveau")"
+          n="$(node outils/version.mjs monter)"
           node outils/version.mjs verifier
           git commit -am "Version $n"
           git push origin HEAD:main
