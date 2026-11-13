@@ -1,3 +1,7 @@
+# nemetonmcp 0.9.1 (2026-11-13)
+
+- Vues : GeoJSON publiés en .geo.json, retouches de la vue Cartes (#22)
+
 # nemetonmcp 0.9.0 (2026-11-13)
 
 - Lot 4 : rasters pré-rendus et vue Cartes du projet (#21)
