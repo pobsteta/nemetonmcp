@@ -456,10 +456,13 @@
   }
   function rendreClassement() {
     var c = coucheCourante(), v = variableCourante();
-    var bivarie = c && c.legende && c.legende.type === "bivarie";
+    // Classes : seulement pour la santé, où une classe colorée est une
+    // détection ; ailleurs presque tout est coloré et le classement ne dit rien.
+    var sansClassement = c && c.legende && (c.legende.type === "bivarie" ||
+      (c.legende.type === "classes" && c.theme !== "sante"));
     var cle = v ? "classement_ug" : c && c.legende.type === "continu" ? "classement_continu" : "classement_classes";
     $("titre-classement").textContent = NV.t(cle);
-    if ((!c && !v) || bivarie) { $("classement").innerHTML = ""; $("titre-classement").textContent = ""; return; }
+    if ((!c && !v) || sansClassement) { $("classement").innerHTML = ""; $("titre-classement").textContent = ""; return; }
     var liste = Array.from(props.values()).map(function (p) { return { p: p, s: scoreUG(p.ug_id) }; })
       .filter(function (x) { return x.s != null; })
       .sort(function (a, b) { return b.s - a.s; }).slice(0, 12);
@@ -489,7 +492,7 @@
     var barres = valeurs.map(function (v, i) {
       var x = m + (i + 0.15) * (l - 2 * m) / n, hh = (h - 2 * m) * v / max;
       return "<rect x='" + x.toFixed(1) + "' y='" + (h - m - hh).toFixed(1) + "' width='" + bw.toFixed(1) + "' height='" + hh.toFixed(1) + "'" +
-        (i === indexFrise ? " style='fill:var(--nv-ia)'" : "") + "><title>" + E(dateLisible(dates[i])) + " : " + E(NV.nombre(v, 2)) + " ha</title></rect>";
+        (i === indexFrise ? " style='fill:var(--nv-encre)'" : "") + "><title>" + E(dateLisible(dates[i])) + " : " + E(NV.nombre(v, 2)) + " ha</title></rect>";
     }).join("");
     var lbl = function (i) { return "<text x='" + (m + (i + 0.5) * (l - 2 * m) / n).toFixed(1) + "' y='" + (h - 4) + "' text-anchor='middle'>" + E(String(dates[i]).slice(0, 7)) + "</text>"; };
     return "<svg class='rs__serie' viewBox='0 0 " + l + " " + h + "' role='img' aria-label='" + E(NV.t("serie")) + "'>" + barres +

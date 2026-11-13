@@ -192,11 +192,11 @@ relance aucun calcul : il les pré-rend en PNG géoréférencés.
 3. Facultatif : `contexte_carto(projet)` pour les routes et l'hydrographie.
 4. Publier la vue Cartes avec :
    - `rasters.json` ← `fichiers.manifeste`
-   - `ugs.geojson` ← `fichiers.ugs`
+   - `ugs.geo.json` ← `fichiers.ugs` (voir « Extension des GeoJSON »)
    - **chaque image** de `fichiers.images` sous `rasters/<nom du fichier>`
      (le manifeste les cite ainsi : `rasters/fordead_severite.png`,
      `rasters/fordead_severite_20260630.png`…)
-   - `contexte.geojson` ← `fichier` de `contexte_carto` (si présent)
+   - `contexte.geo.json` ← `fichier` de `contexte_carto` (si présent)
    - Capacités : `{"sample": {}}`. La vue n'appelle pas le connecteur.
    - Titre selon le thème : « Santé des forêts · <projet> »,
      « Accessibilité · <projet> », « Régénération · <projet> ».
@@ -248,6 +248,11 @@ Chaque vue = sa page (`vues/<vue>/index.html`) + le moteur commun
   l'emporte sur le titre passé à la publication : **réécrire `<title>` dans
   la copie** du scratchpad avant de publier, sinon toutes les vues portent le
   même nom dans la galerie.
+- **Extension des GeoJSON** : le service d'artéfacts ne sert pas `.geojson`.
+  Publier chaque `x.geojson` sous le nom `x.geo.json` (`atlas.geo.json`,
+  `plan.geo.json`, `contexte.geo.json`, `ugs.geo.json`…) : le moteur le
+  cherche quand `x.geojson` manque. Les `.json` et les images PNG se
+  publient tels quels.
 - Les fichiers de données ne transitent jamais par la conversation.
   - **Connecteur local** : passer les chemins rendus par les outils.
   - **Connecteur distant** : les chemins sont ceux du serveur. Chaque réponse

@@ -649,6 +649,7 @@ await test("Rasters : accessibilité, régénération (climat bivarié, valeurs 
   await page.click("#themes [data-theme='accessibilite']");
   assert.match(await page.getAttribute("#carte img.leaflet-image-layer", "src"), /acc_skidder\.png$/);
   assert.match(await page.textContent("#legende"), /Hors forêt.*non coloré/);
+  assert.equal(await page.locator("#classement [data-ug]").count(), 0);
   await page.click("#themes [data-theme='regeneration']");
   assert.match(await page.getAttribute("#carte img.leaflet-image-layer", "src"), /climat_eobs\.png$/);
   assert.equal(await page.locator("#legende .rs__biv span").count(), 9);

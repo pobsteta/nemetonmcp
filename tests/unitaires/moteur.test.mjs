@@ -190,3 +190,20 @@ test("parcellesUG met les parcelles d'une unité en clair", () => {
   assert.equal(NV.parcellesUG({ parcelles: "A 36" }), "parcel A 36");
   NV.lang = "fr";
 });
+
+test("charger : un .geojson absent est cherché en .geo.json (extension servie par les artéfacts)", async () => {
+  const servis = { "ugs.geo.json": { type: "FeatureCollection", features: [] } };
+  const demandes = [];
+  const avant = globalThis.fetch;
+  globalThis.fetch = (nom) => {
+    demandes.push(nom);
+    const corps = servis[nom];
+    return Promise.resolve({ status: corps ? 200 : 404, ok: !!corps, json: () => Promise.resolve(corps) });
+  };
+  try {
+    assert.deepEqual(await NV.charger("ugs.geojson"), servis["ugs.geo.json"]);
+    assert.deepEqual(demandes, ["ugs.geojson", "ugs.geo.json"]);
+    assert.equal(await NV.charger("absent.geojson"), null);
+    assert.equal(await NV.charger("absent.json"), null);
+  } finally { globalThis.fetch = avant; }
+});
