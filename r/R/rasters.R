@@ -26,7 +26,7 @@
     acc_camion_dfci = "D\u00e9fendabilit\u00e9 DFCI (camion)",
     acc_classes_debardage = "Classes de distance de d\u00e9bardage",
     climat = "Climat %s \u00b7 \u0394T\u00b0max \u00d7 \u0394pr\u00e9cipitations",
-    sev = c("sain", "faible", "moyenne", "forte", "sol nu"),
+    sev = c("sain", "faible", "moyenne", "forte", "sol nu (coupe rase)"),
     fast_cl = c("faible (moins fiable)", "moyenne (moins fiable)", "forte", "tr\u00e8s forte"),
     rec_cl = c("sain", "d\u00e9p\u00e9rissant", "tr\u00e8s d\u00e9p\u00e9rissant"),
     acc = c(parcourable = "Parcourable (engin)", accessible = "Accessible",
@@ -57,7 +57,7 @@
     acc_camion_dfci = "DFCI defendability (truck)",
     acc_classes_debardage = "Skidding distance classes",
     climat = "%s climate \u00b7 \u0394T\u00b0max \u00d7 \u0394precipitation",
-    sev = c("healthy", "low", "medium", "high", "bare soil"),
+    sev = c("healthy", "low", "medium", "high", "bare soil (clear-cut)"),
     fast_cl = c("low (less reliable)", "medium (less reliable)", "high", "very high"),
     rec_cl = c("healthy", "declining", "severely declining"),
     acc = c(parcourable = "Traversable (machine)", accessible = "Accessible",
@@ -80,7 +80,9 @@
 
 # Couleurs des classes, reprises de nemetonshiny (mod_monitoring_*,
 # mod_accessibility) pour que la vue et l'application se lisent pareil.
-.COULEURS_SEVERITE <- c("#2CA02C", "#FFD27F", "#FF9933", "#D62728", "#222222")
+# Classe 4 (sol nu : coupes rases) en blanc pur, pour la distinguer du
+# deperissement (choix de la vue, l'application la peint en noir).
+.COULEURS_SEVERITE <- c("#2CA02C", "#FFD27F", "#FF9933", "#D62728", "#FFFFFF")
 .COULEURS_FAST <- c("#fee08b", "#fdae61", "#f46d43", "#d73027")
 .COULEURS_RECONFORT <- c("#1A9850", "#FF9933", "#D62728")
 .COULEURS_ACC <- c(
@@ -96,7 +98,13 @@
 .RASTER_MAX_PX <- 1600L
 # Format des entrees du manifeste : a augmenter quand il change, pour que le
 # cache des couches (cle `cle`) ne resserve pas d'anciennes entrees.
-.FORMAT_RASTERS <- 2L
+.FORMAT_RASTERS <- 4L
+# Contexte hors des unites de gestion : les rasters de suivi couvrent toute
+# la zone de suivi (bien plus large que la foret). Les pixels au-dela des UG
+# (plus une marge, pour garder les pixels de bordure) sont peints en gris
+# semi-transparent : on voit l'alentour sans le confondre avec la foret.
+.MARGE_UG_M <- 20
+.OPACITE_CONTEXTE <- 0.35
 # Nombre maximal d'images d'une frise temporelle.
 .FRISE_MAX <- 24L
 
@@ -340,10 +348,13 @@
 #' @param legende Legend of the layer (`.colorer()`).
 #' @param fichier PNG to write.
 #' @param max_px Largest side of the image, in pixels.
+#' @param ugs Management units (sf) or NULL. When given, pixels farther than
+#'   `marge_m` from every unit are greyed (luminance) at `.OPACITE_CONTEXTE`.
+#' @param marge_m Margin around the units, in metres.
 #' @return list: `emprise` `[[sud, ouest], [nord, est]]` (WGS84, the
 #'   `L.imageOverlay` bounds), `largeur`, `hauteur`, `taille_octets`.
 #' @noRd
-.rendre_png <- function(r, legende, fichier, max_px = .RASTER_MAX_PX) {
+.rendre_png <- function(r, legende, fichier, max_px = .RASTER_MAX_PX, ugs = NULL, marge_m = .MARGE_UG_M) {
   r <- r[[1]]
   if (terra::is.factor(r)) r <- terra::as.int(r)
   continu <- identical(legende$type, "continu")
@@ -354,10 +365,18 @@
   nr <- terra::nrow(m)
   nc <- terra::ncol(m)
   rgb <- grDevices::col2rgb(ifelse(is.na(coul), "#000000", coul)) / 255
+  alpha <- ifelse(is.na(coul), 0, 1)
+  dedans <- .masque_ugs(m, ugs, marge_m)
+  if (!is.null(dedans)) {
+    hors <- !dedans & !is.na(coul)
+    gris <- 0.299 * rgb[1, hors] + 0.587 * rgb[2, hors] + 0.114 * rgb[3, hors]
+    for (k in 1:3) rgb[k, hors] <- gris
+    alpha[hors] <- .OPACITE_CONTEXTE
+  }
   img <- array(0, dim = c(nr, nc, 4))
   # terra rend les valeurs ligne par ligne, du nord au sud : l'ordre d'une image.
   for (k in 1:3) img[, , k] <- matrix(rgb[k, ], nrow = nr, ncol = nc, byrow = TRUE)
-  img[, , 4] <- matrix(ifelse(is.na(coul), 0, 1), nrow = nr, ncol = nc, byrow = TRUE)
+  img[, , 4] <- matrix(alpha, nrow = nr, ncol = nc, byrow = TRUE)
   dir.create(dirname(fichier), recursive = TRUE, showWarnings = FALSE)
   png::writePNG(img, fichier)
   e <- as.vector(terra::ext(m))
@@ -366,6 +385,22 @@
   xy <- round(sf::st_coordinates(coins), 6)
   list(emprise = list(c(xy[1, 2], xy[1, 1]), c(xy[2, 2], xy[2, 1])),
        largeur = nc, hauteur = nr, taille_octets = .taille(fichier))
+}
+
+# Pixels de la grille `m` (EPSG:3857) a moins de `marge_m` d'une unite de
+# gestion : vecteur logique dans l'ordre de terra::values(), ou NULL sans UG.
+# La marge est prise en metres vrais (buffer sur la sphere, s2), pas en
+# metres Web Mercator, qui s'etirent avec la latitude.
+.masque_ugs <- function(m, ugs, marge_m = .MARGE_UG_M) {
+  if (is.null(ugs) || !inherits(ugs, "sf") || !nrow(ugs)) return(NULL)
+  g <- sf::st_geometry(ugs)
+  g <- g[!sf::st_is_empty(g)]
+  if (!length(g)) return(NULL)
+  g <- sf::st_make_valid(sf::st_transform(g, 4326))
+  if (marge_m > 0) g <- sf::st_buffer(g, marge_m)
+  g <- sf::st_transform(sf::st_union(g), 3857)
+  z <- terra::rasterize(terra::vect(g), m[[1]], field = 1, touches = TRUE)
+  !is.na(terra::values(z, mat = FALSE))
 }
 
 #' Dates of a timeline (pure function, tested)
@@ -528,7 +563,8 @@ vue_rasters <- function(projet, couche = NULL, date = NULL, langue = "fr",
         nom <- paste0(cc$id, "_", gsub("-", "", date))
       }
       fichier <- file.path(dossier_img, paste0(nom, ".png"))
-      rendu <- .rendre_png(r, cc$legende, fichier, max_px)
+      ugs <- tryCatch(.ugs_rasters(id, chemin, langue), error = function(e) NULL)
+      rendu <- .rendre_png(r, cc$legende, fichier, max_px, ugs = ugs)
       entree <- .entree_couche(cc, rendu, paste0("rasters/", basename(fichier)), list(date_frise = date))
       c(list(projet = id), entree, list(
         fichier = normalizePath(fichier), taille_octets = rendu$taille_octets,
@@ -566,7 +602,7 @@ vue_rasters <- function(projet, couche = NULL, date = NULL, langue = "fr",
     r <- tryCatch(cc$lire(), error = function(e) NULL)
     if (is.null(r)) return(NULL)
     fichier <- file.path(dossier_img, paste0(cc$id, ".png"))
-    rendu <- tryCatch(.rendre_png(r, cc$legende, fichier, max_px), error = function(e) NULL)
+    rendu <- tryCatch(.rendre_png(r, cc$legende, fichier, max_px, ugs = lire_ugs()), error = function(e) NULL)
     if (is.null(rendu)) return(NULL)
     images <<- c(images, fichier)
     extra <- list(par_ug = .stats_ug(r, cc$legende, lire_ugs()))
@@ -574,7 +610,7 @@ vue_rasters <- function(projet, couche = NULL, date = NULL, langue = "fr",
       dates <- .dates_frise(range(terra::values(cc$premiere, mat = FALSE), na.rm = TRUE))
       frise <- lapply(dates, function(d) {
         f <- file.path(dossier_img, paste0(cc$id, "_", gsub("-", "", d), ".png"))
-        rd <- tryCatch(.rendre_png(cc$frise(d), cc$legende, f, max_px), error = function(e) NULL)
+        rd <- tryCatch(.rendre_png(cc$frise(d), cc$legende, f, max_px, ugs = lire_ugs()), error = function(e) NULL)
         if (is.null(rd)) return(NULL)
         images <<- c(images, f)
         list(date = d, image = paste0("rasters/", basename(f)))
@@ -594,6 +630,7 @@ vue_rasters <- function(projet, couche = NULL, date = NULL, langue = "fr",
   manifeste <- list(
     project_id = id, name = lu$synthese$name %||% id, langue = langue, genere_a = .maintenant(),
     theme_initial = theme,
+    contexte = if (!is.null(ugs)) list(marge_m = .MARGE_UG_M, opacite = .OPACITE_CONTEXTE),
     themes = lapply(c("sante", "accessibilite", "regeneration"), function(t) list(id = t, libelle = tx[[t]])),
     couches = entrees,
     variables_ug = lapply(vars_regen, function(v) list(id = paste0("regen_", v), theme = "regeneration",
