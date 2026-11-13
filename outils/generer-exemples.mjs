@@ -3,9 +3,11 @@
 //   clients/claude/vues/exemples/atlas/{atlas.geojson, contexte.geojson}
 //   clients/claude/vues/exemples/calcul/calcul.json
 //   clients/claude/vues/exemples/plan/{plan.json, plan.geojson, contexte.geojson}
+//   clients/claude/vues/exemples/rasters/{rasters.json, ugs.geojson, contexte.geojson, rasters/*.png}
 // Le catalogue des familles (clients/claude/vues/exemples/catalogue.json) est celui du cœur
 // nemeton (R/indicator-config.R) ; les valeurs, elles, sont tirées au hasard.
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { deflateSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -268,4 +270,151 @@ writeFileSync(join(cal, "calcul.json"), JSON.stringify({
   }
 }, null, 1) + "\n");
 copyFileSync(join(at, "contexte.geojson"), join(pl, "contexte.geojson"));
+
+// ---------------------------------------------------------------- Rasters
+// Images fictives (santé, accessibilité, climat) sur l'emprise des UG, au
+// format de vue_rasters : rasters.json, ugs.geojson et rasters/*.png.
+const crcTable = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+const crc32 = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function png(l, h, pixel) {
+  const brut = Buffer.alloc((l * 4 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    brut[y * (l * 4 + 1)] = 0;
+    for (let x = 0; x < l; x++) {
+      const c = pixel(x, y), o = y * (l * 4 + 1) + 1 + x * 4;
+      if (!c) continue;
+      brut[o] = parseInt(c.slice(1, 3), 16); brut[o + 1] = parseInt(c.slice(3, 5), 16); brut[o + 2] = parseInt(c.slice(5, 7), 16); brut[o + 3] = 255;
+    }
+  }
+  const bloc = (type, data) => {
+    const t = Buffer.concat([Buffer.from(type), data]);
+    const lg = Buffer.alloc(4); lg.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(t));
+    return Buffer.concat([lg, t, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(l, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc("IHDR", ihdr),
+    bloc("IDAT", deflateSync(brut)), bloc("IEND", Buffer.alloc(0))]);
+}
+
+const I0 = 9, I1 = 25, J0 = 2, J1 = 15, PX = 6;           // emprise en cases de parcelles, pixels par case
+const LARG = (I1 - I0) * PX, HAUT = (J1 - J0) * PX;
+const emprise = [[r6(LAT0 + J0 * DY), r6(LON0 + I0 * DX)], [r6(LAT0 + J1 * DY), r6(LON0 + I1 * DX)]];
+const ij = (x, y) => [I0 + (x + 0.5) / PX, J1 - (y + 0.5) / PX];    // ligne 0 = nord
+const dansForet = (i, j) => enForet(i - 0.5, j - 0.5);
+// Foyer de dépérissement qui s'étend avec le temps.
+const foyer = (i, j, rayon) => {
+  const d = Math.hypot(i - 19, (j - 6) * 1.3);
+  return d < rayon * 0.4 ? 3 : d < rayon * 0.7 ? 2 : d < rayon ? 1 : 0;
+};
+const COUL_SEV = ["#2CA02C", "#FFD27F", "#FF9933", "#D62728", "#222222"];
+const RAMPE_SCORE = ["#006837", "#1a9850", "#66bd63", "#a6d96a", "#d9ef8b", "#fee08b", "#fdae61", "#f46d43", "#d73027"];
+const BIV = ["#e8e8e8", "#e4acac", "#c85a5a", "#b0d5df", "#ad9ea5", "#985356", "#64acbe", "#627f8c", "#574249"];
+const rampe = (stops, t) => stops[Math.max(0, Math.min(stops.length - 1, Math.round(t * (stops.length - 1))))];
+const valeurs = {
+  fordead_severite: (i, j, r = 2.8) => (dansForet(i, j) ? foyer(i, j, r) : null),
+  reconfort_score: (i, j) => (dansForet(i, j) ? 50 + 35 * Math.sin(i / 2.2) * Math.cos(j / 3) : null),
+  acc_skidder: (i, j) => (dansForet(i, j) ? (Math.abs(j - 9) < 2 ? 1 : Math.abs(j - 9) < 4 ? 2 : 3) : 4),
+  climat_eobs: (i, j) => 1 + Math.min(2, Math.floor((J1 - j) / ((J1 - J0) / 3))) * 3 + Math.min(2, Math.floor((i - I0) / ((I1 - I0) / 3)))
+};
+const couleur = {
+  fordead_severite: (v) => (v ? COUL_SEV[v] : null),
+  reconfort_score: (v) => (v == null ? null : rampe(RAMPE_SCORE, (v - 1) / 99)),
+  acc_skidder: (v) => ({ 1: "#2E7D32", 2: "#9CCC65", 3: "#C62828" })[v] || null,
+  climat_eobs: (v) => BIV[v - 1]
+};
+const rs = join(ex, "rasters");
+mkdirSync(join(rs, "rasters"), { recursive: true });
+const ecrireImage = (nom, f, c) => {
+  writeFileSync(join(rs, "rasters", nom + ".png"), png(LARG, HAUT, (x, y) => c(f(...ij(x, y)))));
+  return "rasters/" + nom + ".png";
+};
+// Statistiques par UG : échantillon de points dans chaque UG (rectangle de cases).
+const points = (u) => {
+  const n = u.membres.length, pts = [];
+  for (let a = 0; a < 4 * n; a++) for (let b = 0; b < 4; b++) pts.push([u.i + (a + 0.5) / 4, u.j + 1 - (b + 0.5) / 4]);
+  return pts;
+};
+const statsClasses = (f) => Object.fromEntries(ugs.map((u, k) => {
+  const v = points(u).map(([i, j]) => f(i, j)).filter((x) => x != null);
+  const parts = {};
+  v.forEach((x) => { parts[x] = (parts[x] || 0) + 1 / v.length; });
+  Object.keys(parts).forEach((x) => { parts[x] = Math.round(parts[x] * 1e4) / 1e4; });
+  return ["ug_" + (k + 1), { parts, surface_ha: features[k].properties.surface_ha }];
+}));
+const statsContinues = (f) => Object.fromEntries(ugs.map((u, k) => {
+  const v = points(u).map(([i, j]) => f(i, j)).filter((x) => x != null);
+  return ["ug_" + (k + 1), { moyenne: Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10,
+    min: Math.round(Math.min(...v) * 10) / 10, max: Math.round(Math.max(...v) * 10) / 10, n_px: v.length }];
+}));
+const datesFrise = [["2025-12-31", 1.4], ["2026-06-30", 2.1], ["2026-09-25", 2.8]];
+const couches = [
+  {
+    id: "fordead_severite", theme: "sante", libelle: "FORDEAD · sévérité du dépérissement",
+    source: "FORDEAD (nemeton, Sentinel-2)", date: null,
+    legende: { type: "classes", classes: [
+      { valeur: 0, libelle: "sain" }, { valeur: 1, libelle: "faible", couleur: COUL_SEV[1] },
+      { valeur: 2, libelle: "moyenne", couleur: COUL_SEV[2] }, { valeur: 3, libelle: "forte", couleur: COUL_SEV[3] },
+      { valeur: 4, libelle: "sol nu", couleur: COUL_SEV[4] }] },
+    image: ecrireImage("fordead_severite", valeurs.fordead_severite, couleur.fordead_severite),
+    emprise, largeur: LARG, hauteur: HAUT,
+    par_ug: statsClasses(valeurs.fordead_severite),
+    frise: datesFrise.map(([d, r]) => ({ date: d,
+      image: ecrireImage("fordead_severite_" + d.replace(/-/g, ""), (i, j) => valeurs.fordead_severite(i, j, r), couleur.fordead_severite) })),
+    serie_ug: {
+      dates: datesFrise.map(([d]) => d),
+      surfaces_ha: Object.fromEntries(ugs.map((u, k) => ["ug_" + (k + 1), datesFrise.map(([, r]) => {
+        const v = points(u).map(([i, j]) => valeurs.fordead_severite(i, j, r)).filter((x) => x != null);
+        return Math.round(v.filter((x) => x >= 1).length / Math.max(1, v.length) * features[k].properties.surface_ha * 100) / 100;
+      })]))
+    }
+  },
+  {
+    id: "reconfort_score", theme: "sante", libelle: "RECONFORT · score de dépérissement",
+    source: "RECONFORT (nemeton, DSF)", date: "2025",
+    legende: { type: "continu", min: 1, max: 100, couleurs: RAMPE_SCORE, format: "nombre" },
+    image: ecrireImage("reconfort_score", valeurs.reconfort_score, couleur.reconfort_score),
+    emprise, largeur: LARG, hauteur: HAUT, par_ug: statsContinues(valeurs.reconfort_score)
+  },
+  {
+    id: "acc_skidder", theme: "accessibilite", libelle: "Débusqueur (skidder)",
+    source: "foretaccess (nemetonshiny)", date: "2026-10-01",
+    legende: { type: "classes", classes: [
+      { valeur: 1, libelle: "Parcourable (engin)", couleur: "#2E7D32" }, { valeur: 2, libelle: "Accessible", couleur: "#9CCC65" },
+      { valeur: 3, libelle: "Non accessible", couleur: "#C62828" }, { valeur: 4, libelle: "Hors forêt" }] },
+    image: ecrireImage("acc_skidder", valeurs.acc_skidder, couleur.acc_skidder),
+    emprise, largeur: LARG, hauteur: HAUT, par_ug: statsClasses(valeurs.acc_skidder)
+  },
+  {
+    id: "climat_eobs", theme: "regeneration", libelle: "Climat EOBS · ΔT°max × Δprécipitations",
+    source: "EOBS (nemeton, régénération)", date: "2006–2020",
+    legende: { type: "bivarie", n: 3, classes: BIV.map((c, k) => ({ valeur: k + 1, couleur: c })),
+      axe_x: { nom: "ΔP", unite: "mm", bornes: [-270, 120] }, axe_y: { nom: "ΔT°max", unite: "°C", bornes: [-0.7, 4] } },
+    image: ecrireImage("climat_eobs", valeurs.climat_eobs, couleur.climat_eobs),
+    emprise, largeur: LARG, hauteur: HAUT, par_ug: statsClasses(valeurs.climat_eobs)
+  }
+];
+writeFileSync(join(rs, "rasters.json"), JSON.stringify({
+  exemple: true, project_id: "20261006_120000_demo", name: "Forêt exemple (données fictives)",
+  langue: "fr", genere_a: "2026-10-06T12:00:00+0200", theme_initial: null,
+  themes: [{ id: "sante", libelle: "Santé des forêts" }, { id: "accessibilite", libelle: "Accessibilité" },
+    { id: "regeneration", libelle: "Régénération" }],
+  couches,
+  variables_ug: [{ id: "regen_priorite", theme: "regeneration", libelle: "Indice de priorité" },
+    { id: "regen_d_tmax", theme: "regeneration", libelle: "ΔT°max sous couvert (°C)" }],
+  absentes: { fast: "Calculer une alerte FAST dans nemetonshiny (Suivi sanitaire)." }
+}, null, 1) + "\n");
+writeFileSync(join(rs, "ugs.geojson"), JSON.stringify(fc(features.map((f, k) => ({
+  type: "Feature", geometry: f.geometry,
+  properties: { ug_id: f.properties.ug_id, label: f.properties.label, parcelles: f.properties.parcelles,
+    surface_ha: f.properties.surface_ha,
+    regen_priorite: Math.round(borne(30 + 50 * Math.sin(k / 3) ** 2) * 10) / 10,
+    regen_d_tmax: Math.round((-7 + 4 * ((k * 37) % 11) / 10) * 100) / 100 }
+})))));
+copyFileSync(join(at, "contexte.geojson"), join(rs, "contexte.geojson"));
 console.log(`${propres.length} parcelles, ${features.length} UG d'exemple écrites dans clients/claude/vues/exemples/.`);

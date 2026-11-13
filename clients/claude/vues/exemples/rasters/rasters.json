@@ -1,0 +1,2090 @@
+{
+ "exemple": true,
+ "project_id": "20261006_120000_demo",
+ "name": "Forêt exemple (données fictives)",
+ "langue": "fr",
+ "genere_a": "2026-10-06T12:00:00+0200",
+ "theme_initial": null,
+ "themes": [
+  {
+   "id": "sante",
+   "libelle": "Santé des forêts"
+  },
+  {
+   "id": "accessibilite",
+   "libelle": "Accessibilité"
+  },
+  {
+   "id": "regeneration",
+   "libelle": "Régénération"
+  }
+ ],
+ "couches": [
+  {
+   "id": "fordead_severite",
+   "theme": "sante",
+   "libelle": "FORDEAD · sévérité du dépérissement",
+   "source": "FORDEAD (nemeton, Sentinel-2)",
+   "date": null,
+   "legende": {
+    "type": "classes",
+    "classes": [
+     {
+      "valeur": 0,
+      "libelle": "sain"
+     },
+     {
+      "valeur": 1,
+      "libelle": "faible",
+      "couleur": "#FFD27F"
+     },
+     {
+      "valeur": 2,
+      "libelle": "moyenne",
+      "couleur": "#FF9933"
+     },
+     {
+      "valeur": 3,
+      "libelle": "forte",
+      "couleur": "#D62728"
+     },
+     {
+      "valeur": 4,
+      "libelle": "sol nu",
+      "couleur": "#222222"
+     }
+    ]
+   },
+   "image": "rasters/fordead_severite.png",
+   "emprise": [
+    [
+     47.3032,
+     4.9166
+    ],
+    [
+     47.324,
+     4.955
+    ]
+   ],
+   "largeur": 96,
+   "hauteur": 78,
+   "par_ug": {
+    "ug_1": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.4
+    },
+    "ug_2": {
+     "parts": {
+      "0": 0.5,
+      "1": 0.4688,
+      "2": 0.0313
+     },
+     "surface_ha": 6
+    },
+    "ug_3": {
+     "parts": {
+      "1": 0.5625,
+      "2": 0.4375
+     },
+     "surface_ha": 7.32
+    },
+    "ug_4": {
+     "parts": {
+      "0": 0.0714,
+      "1": 0.8571,
+      "2": 0.0714
+     },
+     "surface_ha": 3.52
+    },
+    "ug_5": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 8.11
+    },
+    "ug_6": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.98
+    },
+    "ug_7": {
+     "parts": {
+      "0": 0.1563,
+      "1": 0.4375,
+      "2": 0.4063
+     },
+     "surface_ha": 5.52
+    },
+    "ug_8": {
+     "parts": {
+      "2": 0.3125,
+      "3": 0.6875
+     },
+     "surface_ha": 5.84
+    },
+    "ug_9": {
+     "parts": {
+      "0": 0.1563,
+      "1": 0.4375,
+      "2": 0.4063
+     },
+     "surface_ha": 5.49
+    },
+    "ug_10": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 1.87
+    },
+    "ug_11": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.75
+    },
+    "ug_12": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.04
+    },
+    "ug_13": {
+     "parts": {
+      "0": 0.1563,
+      "1": 0.4375,
+      "2": 0.4063
+     },
+     "surface_ha": 6.76
+    },
+    "ug_14": {
+     "parts": {
+      "2": 0.3125,
+      "3": 0.6875
+     },
+     "surface_ha": 6.42
+    },
+    "ug_15": {
+     "parts": {
+      "0": 0.1563,
+      "1": 0.4375,
+      "2": 0.4063
+     },
+     "surface_ha": 6.85
+    },
+    "ug_16": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 2.51
+    },
+    "ug_17": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.66
+    },
+    "ug_18": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.09
+    },
+    "ug_19": {
+     "parts": {
+      "0": 0.9063,
+      "1": 0.0938
+     },
+     "surface_ha": 5.79
+    },
+    "ug_20": {
+     "parts": {
+      "0": 0.0938,
+      "1": 0.6563,
+      "2": 0.25
+     },
+     "surface_ha": 7.23
+    },
+    "ug_21": {
+     "parts": {
+      "0": 0.0938,
+      "1": 0.6563,
+      "2": 0.25
+     },
+     "surface_ha": 7.53
+    },
+    "ug_22": {
+     "parts": {
+      "0": 0.9063,
+      "1": 0.0938
+     },
+     "surface_ha": 5.56
+    },
+    "ug_23": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.13
+    },
+    "ug_24": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.68
+    },
+    "ug_25": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.62
+    },
+    "ug_26": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.2
+    },
+    "ug_27": {
+     "parts": {
+      "0": 0.9375,
+      "1": 0.0625
+     },
+     "surface_ha": 6.67
+    },
+    "ug_28": {
+     "parts": {
+      "0": 0.9375,
+      "1": 0.0625
+     },
+     "surface_ha": 7.86
+    },
+    "ug_29": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.96
+    },
+    "ug_30": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.24
+    },
+    "ug_31": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.33
+    },
+    "ug_32": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 4.37
+    },
+    "ug_33": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.41
+    },
+    "ug_34": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.38
+    },
+    "ug_35": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.02
+    },
+    "ug_36": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.4
+    },
+    "ug_37": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.02
+    },
+    "ug_38": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6
+    },
+    "ug_39": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.5
+    },
+    "ug_40": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.34
+    },
+    "ug_41": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.12
+    },
+    "ug_42": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.87
+    },
+    "ug_43": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.52
+    },
+    "ug_44": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.1
+    },
+    "ug_45": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 8.14
+    },
+    "ug_46": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.86
+    },
+    "ug_47": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.47
+    },
+    "ug_48": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.31
+    },
+    "ug_49": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.41
+    },
+    "ug_50": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.15
+    },
+    "ug_51": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.89
+    },
+    "ug_52": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 5.36
+    },
+    "ug_53": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.13
+    },
+    "ug_54": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.08
+    },
+    "ug_55": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 4.67
+    },
+    "ug_56": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 3.13
+    },
+    "ug_57": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 4.87
+    },
+    "ug_58": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 6.98
+    },
+    "ug_59": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 7.15
+    },
+    "ug_60": {
+     "parts": {
+      "0": 1
+     },
+     "surface_ha": 2.71
+    }
+   },
+   "frise": [
+    {
+     "date": "2025-12-31",
+     "image": "rasters/fordead_severite_20251231.png"
+    },
+    {
+     "date": "2026-06-30",
+     "image": "rasters/fordead_severite_20260630.png"
+    },
+    {
+     "date": "2026-09-25",
+     "image": "rasters/fordead_severite_20260925.png"
+    }
+   ],
+   "serie_ug": {
+    "dates": [
+     "2025-12-31",
+     "2026-06-30",
+     "2026-09-25"
+    ],
+    "surfaces_ha": {
+     "ug_1": [
+      0,
+      0,
+      0
+     ],
+     "ug_2": [
+      0,
+      0.38,
+      3
+     ],
+     "ug_3": [
+      0,
+      3.66,
+      7.32
+     ],
+     "ug_4": [
+      0,
+      0.5,
+      3.27
+     ],
+     "ug_5": [
+      0,
+      0,
+      0
+     ],
+     "ug_6": [
+      0,
+      0,
+      0
+     ],
+     "ug_7": [
+      0.69,
+      2.59,
+      4.66
+     ],
+     "ug_8": [
+      5.48,
+      5.84,
+      5.84
+     ],
+     "ug_9": [
+      0.69,
+      2.57,
+      4.63
+     ],
+     "ug_10": [
+      0,
+      0,
+      0
+     ],
+     "ug_11": [
+      0,
+      0,
+      0
+     ],
+     "ug_12": [
+      0,
+      0,
+      0
+     ],
+     "ug_13": [
+      0.85,
+      3.17,
+      5.7
+     ],
+     "ug_14": [
+      6.02,
+      6.42,
+      6.42
+     ],
+     "ug_15": [
+      0.86,
+      3.21,
+      5.78
+     ],
+     "ug_16": [
+      0,
+      0,
+      0
+     ],
+     "ug_17": [
+      0,
+      0,
+      0
+     ],
+     "ug_18": [
+      0,
+      0,
+      0
+     ],
+     "ug_19": [
+      0,
+      0,
+      0.54
+     ],
+     "ug_20": [
+      0,
+      2.26,
+      6.55
+     ],
+     "ug_21": [
+      0,
+      2.35,
+      6.82
+     ],
+     "ug_22": [
+      0,
+      0,
+      0.52
+     ],
+     "ug_23": [
+      0,
+      0,
+      0
+     ],
+     "ug_24": [
+      0,
+      0,
+      0
+     ],
+     "ug_25": [
+      0,
+      0,
+      0
+     ],
+     "ug_26": [
+      0,
+      0,
+      0
+     ],
+     "ug_27": [
+      0,
+      0,
+      0.42
+     ],
+     "ug_28": [
+      0,
+      0,
+      0.49
+     ],
+     "ug_29": [
+      0,
+      0,
+      0
+     ],
+     "ug_30": [
+      0,
+      0,
+      0
+     ],
+     "ug_31": [
+      0,
+      0,
+      0
+     ],
+     "ug_32": [
+      0,
+      0,
+      0
+     ],
+     "ug_33": [
+      0,
+      0,
+      0
+     ],
+     "ug_34": [
+      0,
+      0,
+      0
+     ],
+     "ug_35": [
+      0,
+      0,
+      0
+     ],
+     "ug_36": [
+      0,
+      0,
+      0
+     ],
+     "ug_37": [
+      0,
+      0,
+      0
+     ],
+     "ug_38": [
+      0,
+      0,
+      0
+     ],
+     "ug_39": [
+      0,
+      0,
+      0
+     ],
+     "ug_40": [
+      0,
+      0,
+      0
+     ],
+     "ug_41": [
+      0,
+      0,
+      0
+     ],
+     "ug_42": [
+      0,
+      0,
+      0
+     ],
+     "ug_43": [
+      0,
+      0,
+      0
+     ],
+     "ug_44": [
+      0,
+      0,
+      0
+     ],
+     "ug_45": [
+      0,
+      0,
+      0
+     ],
+     "ug_46": [
+      0,
+      0,
+      0
+     ],
+     "ug_47": [
+      0,
+      0,
+      0
+     ],
+     "ug_48": [
+      0,
+      0,
+      0
+     ],
+     "ug_49": [
+      0,
+      0,
+      0
+     ],
+     "ug_50": [
+      0,
+      0,
+      0
+     ],
+     "ug_51": [
+      0,
+      0,
+      0
+     ],
+     "ug_52": [
+      0,
+      0,
+      0
+     ],
+     "ug_53": [
+      0,
+      0,
+      0
+     ],
+     "ug_54": [
+      0,
+      0,
+      0
+     ],
+     "ug_55": [
+      0,
+      0,
+      0
+     ],
+     "ug_56": [
+      0,
+      0,
+      0
+     ],
+     "ug_57": [
+      0,
+      0,
+      0
+     ],
+     "ug_58": [
+      0,
+      0,
+      0
+     ],
+     "ug_59": [
+      0,
+      0,
+      0
+     ],
+     "ug_60": [
+      0,
+      0,
+      0
+     ]
+    }
+   }
+  },
+  {
+   "id": "reconfort_score",
+   "theme": "sante",
+   "libelle": "RECONFORT · score de dépérissement",
+   "source": "RECONFORT (nemeton, DSF)",
+   "date": "2025",
+   "legende": {
+    "type": "continu",
+    "min": 1,
+    "max": 100,
+    "couleurs": [
+     "#006837",
+     "#1a9850",
+     "#66bd63",
+     "#a6d96a",
+     "#d9ef8b",
+     "#fee08b",
+     "#fdae61",
+     "#f46d43",
+     "#d73027"
+    ],
+    "format": "nombre"
+   },
+   "image": "rasters/reconfort_score.png",
+   "emprise": [
+    [
+     47.3032,
+     4.9166
+    ],
+    [
+     47.324,
+     4.955
+    ]
+   ],
+   "largeur": 96,
+   "hauteur": 78,
+   "par_ug": {
+    "ug_1": {
+     "moyenne": 51.2,
+     "min": 48.5,
+     "max": 55.5,
+     "n_px": 30
+    },
+    "ug_2": {
+     "moyenne": 52.4,
+     "min": 48.1,
+     "max": 56.8,
+     "n_px": 32
+    },
+    "ug_3": {
+     "moyenne": 51.7,
+     "min": 48.2,
+     "max": 56.3,
+     "n_px": 32
+    },
+    "ug_4": {
+     "moyenne": 50.3,
+     "min": 49.5,
+     "max": 51.9,
+     "n_px": 14
+    },
+    "ug_5": {
+     "moyenne": 52.7,
+     "min": 49.7,
+     "max": 58.1,
+     "n_px": 24
+    },
+    "ug_6": {
+     "moyenne": 45.5,
+     "min": 39.4,
+     "max": 49.3,
+     "n_px": 32
+    },
+    "ug_7": {
+     "moyenne": 41.3,
+     "min": 36.8,
+     "max": 45.8,
+     "n_px": 32
+    },
+    "ug_8": {
+     "moyenne": 43.8,
+     "min": 37.7,
+     "max": 48.2,
+     "n_px": 32
+    },
+    "ug_9": {
+     "moyenne": 51.1,
+     "min": 46.4,
+     "max": 56.6,
+     "n_px": 32
+    },
+    "ug_10": {
+     "moyenne": 57.2,
+     "min": 54.5,
+     "max": 60,
+     "n_px": 8
+    },
+    "ug_11": {
+     "moyenne": 56.9,
+     "min": 49.5,
+     "max": 66.1,
+     "n_px": 32
+    },
+    "ug_12": {
+     "moyenne": 40.4,
+     "min": 31.4,
+     "max": 47.8,
+     "n_px": 32
+    },
+    "ug_13": {
+     "moyenne": 31.3,
+     "min": 26.9,
+     "max": 36.3,
+     "n_px": 32
+    },
+    "ug_14": {
+     "moyenne": 36.6,
+     "min": 28.6,
+     "max": 44,
+     "n_px": 32
+    },
+    "ug_15": {
+     "moyenne": 52.3,
+     "min": 43.7,
+     "max": 61.4,
+     "n_px": 32
+    },
+    "ug_16": {
+     "moyenne": 64,
+     "min": 59.4,
+     "max": 69.1,
+     "n_px": 16
+    },
+    "ug_17": {
+     "moyenne": 68.8,
+     "min": 60.5,
+     "max": 77.3,
+     "n_px": 27
+    },
+    "ug_18": {
+     "moyenne": 47.8,
+     "min": 36,
+     "max": 59.5,
+     "n_px": 32
+    },
+    "ug_19": {
+     "moyenne": 27.4,
+     "min": 20.1,
+     "max": 35.9,
+     "n_px": 32
+    },
+    "ug_20": {
+     "moyenne": 24.5,
+     "min": 19.6,
+     "max": 31.1,
+     "n_px": 32
+    },
+    "ug_21": {
+     "moyenne": 41.2,
+     "min": 29.7,
+     "max": 51.9,
+     "n_px": 32
+    },
+    "ug_22": {
+     "moyenne": 64.7,
+     "min": 54.5,
+     "max": 75.2,
+     "n_px": 32
+    },
+    "ug_23": {
+     "moyenne": 76.1,
+     "min": 72.3,
+     "max": 79.4,
+     "n_px": 11
+    },
+    "ug_24": {
+     "moyenne": 73.7,
+     "min": 63.3,
+     "max": 82.4,
+     "n_px": 32
+    },
+    "ug_25": {
+     "moyenne": 47.4,
+     "min": 34.2,
+     "max": 60.7,
+     "n_px": 32
+    },
+    "ug_26": {
+     "moyenne": 23.2,
+     "min": 16.2,
+     "max": 32.3,
+     "n_px": 32
+    },
+    "ug_27": {
+     "moyenne": 19.6,
+     "min": 15.6,
+     "max": 26.2,
+     "n_px": 32
+    },
+    "ug_28": {
+     "moyenne": 39.5,
+     "min": 27,
+     "max": 52.2,
+     "n_px": 32
+    },
+    "ug_29": {
+     "moyenne": 67.5,
+     "min": 55.6,
+     "max": 78.4,
+     "n_px": 32
+    },
+    "ug_30": {
+     "moyenne": 81.3,
+     "min": 78.1,
+     "max": 84.1,
+     "n_px": 16
+    },
+    "ug_31": {
+     "moyenne": 74.8,
+     "min": 64.5,
+     "max": 82.9,
+     "n_px": 32
+    },
+    "ug_32": {
+     "moyenne": 47.3,
+     "min": 33.9,
+     "max": 60.9,
+     "n_px": 32
+    },
+    "ug_33": {
+     "moyenne": 21.9,
+     "min": 15.6,
+     "max": 30.7,
+     "n_px": 32
+    },
+    "ug_34": {
+     "moyenne": 18.1,
+     "min": 15,
+     "max": 24.1,
+     "n_px": 32
+    },
+    "ug_35": {
+     "moyenne": 39,
+     "min": 26.6,
+     "max": 52.2,
+     "n_px": 32
+    },
+    "ug_36": {
+     "moyenne": 68.3,
+     "min": 56.1,
+     "max": 78.9,
+     "n_px": 32
+    },
+    "ug_37": {
+     "moyenne": 82.9,
+     "min": 80.6,
+     "max": 84.6,
+     "n_px": 16
+    },
+    "ug_38": {
+     "moyenne": 72,
+     "min": 62.9,
+     "max": 80.5,
+     "n_px": 27
+    },
+    "ug_39": {
+     "moyenne": 47.5,
+     "min": 34.3,
+     "max": 60.6,
+     "n_px": 32
+    },
+    "ug_40": {
+     "moyenne": 23.6,
+     "min": 16.5,
+     "max": 32.7,
+     "n_px": 32
+    },
+    "ug_41": {
+     "moyenne": 20.1,
+     "min": 16,
+     "max": 26.8,
+     "n_px": 32
+    },
+    "ug_42": {
+     "moyenne": 39.7,
+     "min": 27.3,
+     "max": 52.2,
+     "n_px": 32
+    },
+    "ug_43": {
+     "moyenne": 67.2,
+     "min": 55.5,
+     "max": 78.1,
+     "n_px": 32
+    },
+    "ug_44": {
+     "moyenne": 80.3,
+     "min": 77.4,
+     "max": 82.9,
+     "n_px": 11
+    },
+    "ug_45": {
+     "moyenne": 59.5,
+     "min": 49.3,
+     "max": 70.6,
+     "n_px": 32
+    },
+    "ug_46": {
+     "moyenne": 36.8,
+     "min": 26.3,
+     "max": 46.7,
+     "n_px": 32
+    },
+    "ug_47": {
+     "moyenne": 24.3,
+     "min": 20.5,
+     "max": 29.3,
+     "n_px": 32
+    },
+    "ug_48": {
+     "moyenne": 31.6,
+     "min": 22.6,
+     "max": 40.9,
+     "n_px": 32
+    },
+    "ug_49": {
+     "moyenne": 53.1,
+     "min": 41.9,
+     "max": 64.6,
+     "n_px": 32
+    },
+    "ug_50": {
+     "moyenne": 69.1,
+     "min": 64.2,
+     "max": 74.4,
+     "n_px": 16
+    },
+    "ug_51": {
+     "moyenne": 55.1,
+     "min": 49.5,
+     "max": 63.3,
+     "n_px": 24
+    },
+    "ug_52": {
+     "moyenne": 41.1,
+     "min": 32.5,
+     "max": 48,
+     "n_px": 32
+    },
+    "ug_53": {
+     "moyenne": 32.7,
+     "min": 28.3,
+     "max": 37.6,
+     "n_px": 32
+    },
+    "ug_54": {
+     "moyenne": 37.6,
+     "min": 29.8,
+     "max": 44.6,
+     "n_px": 32
+    },
+    "ug_55": {
+     "moyenne": 52.1,
+     "min": 44,
+     "max": 60.8,
+     "n_px": 32
+    },
+    "ug_56": {
+     "moyenne": 63.1,
+     "min": 60,
+     "max": 66.5,
+     "n_px": 8
+    },
+    "ug_57": {
+     "moyenne": 46.2,
+     "min": 40.7,
+     "max": 49.2,
+     "n_px": 30
+    },
+    "ug_58": {
+     "moyenne": 43,
+     "min": 38.4,
+     "max": 47.4,
+     "n_px": 32
+    },
+    "ug_59": {
+     "moyenne": 45,
+     "min": 39.3,
+     "max": 48.8,
+     "n_px": 32
+    },
+    "ug_60": {
+     "moyenne": 49.1,
+     "min": 46.8,
+     "max": 50.7,
+     "n_px": 14
+    }
+   }
+  },
+  {
+   "id": "acc_skidder",
+   "theme": "accessibilite",
+   "libelle": "Débusqueur (skidder)",
+   "source": "foretaccess (nemetonshiny)",
+   "date": "2026-10-01",
+   "legende": {
+    "type": "classes",
+    "classes": [
+     {
+      "valeur": 1,
+      "libelle": "Parcourable (engin)",
+      "couleur": "#2E7D32"
+     },
+     {
+      "valeur": 2,
+      "libelle": "Accessible",
+      "couleur": "#9CCC65"
+     },
+     {
+      "valeur": 3,
+      "libelle": "Non accessible",
+      "couleur": "#C62828"
+     },
+     {
+      "valeur": 4,
+      "libelle": "Hors forêt"
+     }
+    ]
+   },
+   "image": "rasters/acc_skidder.png",
+   "emprise": [
+    [
+     47.3032,
+     4.9166
+    ],
+    [
+     47.324,
+     4.955
+    ]
+   ],
+   "largeur": 96,
+   "hauteur": 78,
+   "par_ug": {
+    "ug_1": {
+     "parts": {
+      "3": 0.9375,
+      "4": 0.0625
+     },
+     "surface_ha": 5.4
+    },
+    "ug_2": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 6
+    },
+    "ug_3": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 7.32
+    },
+    "ug_4": {
+     "parts": {
+      "3": 0.875,
+      "4": 0.125
+     },
+     "surface_ha": 3.52
+    },
+    "ug_5": {
+     "parts": {
+      "2": 0.75,
+      "4": 0.25
+     },
+     "surface_ha": 8.11
+    },
+    "ug_6": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.98
+    },
+    "ug_7": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.52
+    },
+    "ug_8": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.84
+    },
+    "ug_9": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.49
+    },
+    "ug_10": {
+     "parts": {
+      "2": 0.5,
+      "4": 0.5
+     },
+     "surface_ha": 1.87
+    },
+    "ug_11": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.75
+    },
+    "ug_12": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.04
+    },
+    "ug_13": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.76
+    },
+    "ug_14": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.42
+    },
+    "ug_15": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.85
+    },
+    "ug_16": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 2.51
+    },
+    "ug_17": {
+     "parts": {
+      "1": 0.8438,
+      "4": 0.1563
+     },
+     "surface_ha": 5.66
+    },
+    "ug_18": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 6.09
+    },
+    "ug_19": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.79
+    },
+    "ug_20": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.23
+    },
+    "ug_21": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.53
+    },
+    "ug_22": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.56
+    },
+    "ug_23": {
+     "parts": {
+      "1": 0.6875,
+      "4": 0.3125
+     },
+     "surface_ha": 3.13
+    },
+    "ug_24": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 6.68
+    },
+    "ug_25": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.62
+    },
+    "ug_26": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 6.2
+    },
+    "ug_27": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 6.67
+    },
+    "ug_28": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.86
+    },
+    "ug_29": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.96
+    },
+    "ug_30": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 3.24
+    },
+    "ug_31": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.33
+    },
+    "ug_32": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 4.37
+    },
+    "ug_33": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.41
+    },
+    "ug_34": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 6.38
+    },
+    "ug_35": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.02
+    },
+    "ug_36": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.4
+    },
+    "ug_37": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 3.02
+    },
+    "ug_38": {
+     "parts": {
+      "1": 0.8438,
+      "4": 0.1563
+     },
+     "surface_ha": 6
+    },
+    "ug_39": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.5
+    },
+    "ug_40": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.34
+    },
+    "ug_41": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 7.12
+    },
+    "ug_42": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.87
+    },
+    "ug_43": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.52
+    },
+    "ug_44": {
+     "parts": {
+      "1": 0.6875,
+      "4": 0.3125
+     },
+     "surface_ha": 3.1
+    },
+    "ug_45": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 8.14
+    },
+    "ug_46": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.86
+    },
+    "ug_47": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.47
+    },
+    "ug_48": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.31
+    },
+    "ug_49": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.41
+    },
+    "ug_50": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 3.15
+    },
+    "ug_51": {
+     "parts": {
+      "2": 0.75,
+      "4": 0.25
+     },
+     "surface_ha": 5.89
+    },
+    "ug_52": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.36
+    },
+    "ug_53": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.13
+    },
+    "ug_54": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.08
+    },
+    "ug_55": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 4.67
+    },
+    "ug_56": {
+     "parts": {
+      "2": 0.5,
+      "4": 0.5
+     },
+     "surface_ha": 3.13
+    },
+    "ug_57": {
+     "parts": {
+      "3": 0.9375,
+      "4": 0.0625
+     },
+     "surface_ha": 4.87
+    },
+    "ug_58": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 6.98
+    },
+    "ug_59": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 7.15
+    },
+    "ug_60": {
+     "parts": {
+      "3": 0.875,
+      "4": 0.125
+     },
+     "surface_ha": 2.71
+    }
+   }
+  },
+  {
+   "id": "climat_eobs",
+   "theme": "regeneration",
+   "libelle": "Climat EOBS · ΔT°max × Δprécipitations",
+   "source": "EOBS (nemeton, régénération)",
+   "date": "2006–2020",
+   "legende": {
+    "type": "bivarie",
+    "n": 3,
+    "classes": [
+     {
+      "valeur": 1,
+      "couleur": "#e8e8e8"
+     },
+     {
+      "valeur": 2,
+      "couleur": "#e4acac"
+     },
+     {
+      "valeur": 3,
+      "couleur": "#c85a5a"
+     },
+     {
+      "valeur": 4,
+      "couleur": "#b0d5df"
+     },
+     {
+      "valeur": 5,
+      "couleur": "#ad9ea5"
+     },
+     {
+      "valeur": 6,
+      "couleur": "#985356"
+     },
+     {
+      "valeur": 7,
+      "couleur": "#64acbe"
+     },
+     {
+      "valeur": 8,
+      "couleur": "#627f8c"
+     },
+     {
+      "valeur": 9,
+      "couleur": "#574249"
+     }
+    ],
+    "axe_x": {
+     "nom": "ΔP",
+     "unite": "mm",
+     "bornes": [
+      -270,
+      120
+     ]
+    },
+    "axe_y": {
+     "nom": "ΔT°max",
+     "unite": "°C",
+     "bornes": [
+      -0.7,
+      4
+     ]
+    }
+   },
+   "image": "rasters/climat_eobs.png",
+   "emprise": [
+    [
+     47.3032,
+     4.9166
+    ],
+    [
+     47.324,
+     4.955
+    ]
+   ],
+   "largeur": 96,
+   "hauteur": 78,
+   "par_ug": {
+    "ug_1": {
+     "parts": {
+      "7": 0.125,
+      "8": 0.875
+     },
+     "surface_ha": 5.4
+    },
+    "ug_2": {
+     "parts": {
+      "8": 1
+     },
+     "surface_ha": 6
+    },
+    "ug_3": {
+     "parts": {
+      "8": 0.875,
+      "9": 0.125
+     },
+     "surface_ha": 7.32
+    },
+    "ug_4": {
+     "parts": {
+      "9": 1
+     },
+     "surface_ha": 3.52
+    },
+    "ug_5": {
+     "parts": {
+      "7": 1
+     },
+     "surface_ha": 8.11
+    },
+    "ug_6": {
+     "parts": {
+      "7": 0.125,
+      "8": 0.875
+     },
+     "surface_ha": 6.98
+    },
+    "ug_7": {
+     "parts": {
+      "8": 1
+     },
+     "surface_ha": 5.52
+    },
+    "ug_8": {
+     "parts": {
+      "8": 0.875,
+      "9": 0.125
+     },
+     "surface_ha": 5.84
+    },
+    "ug_9": {
+     "parts": {
+      "9": 1
+     },
+     "surface_ha": 5.49
+    },
+    "ug_10": {
+     "parts": {
+      "9": 1
+     },
+     "surface_ha": 1.87
+    },
+    "ug_11": {
+     "parts": {
+      "4": 0.75,
+      "7": 0.25
+     },
+     "surface_ha": 6.75
+    },
+    "ug_12": {
+     "parts": {
+      "4": 0.0938,
+      "5": 0.6563,
+      "7": 0.0313,
+      "8": 0.2188
+     },
+     "surface_ha": 6.04
+    },
+    "ug_13": {
+     "parts": {
+      "5": 0.75,
+      "8": 0.25
+     },
+     "surface_ha": 6.76
+    },
+    "ug_14": {
+     "parts": {
+      "5": 0.6563,
+      "6": 0.0938,
+      "8": 0.2188,
+      "9": 0.0313
+     },
+     "surface_ha": 6.42
+    },
+    "ug_15": {
+     "parts": {
+      "6": 0.75,
+      "9": 0.25
+     },
+     "surface_ha": 6.85
+    },
+    "ug_16": {
+     "parts": {
+      "6": 0.75,
+      "9": 0.25
+     },
+     "surface_ha": 2.51
+    },
+    "ug_17": {
+     "parts": {
+      "4": 1
+     },
+     "surface_ha": 5.66
+    },
+    "ug_18": {
+     "parts": {
+      "4": 0.625,
+      "5": 0.375
+     },
+     "surface_ha": 6.09
+    },
+    "ug_19": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 5.79
+    },
+    "ug_20": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 7.23
+    },
+    "ug_21": {
+     "parts": {
+      "5": 0.375,
+      "6": 0.625
+     },
+     "surface_ha": 7.53
+    },
+    "ug_22": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 5.56
+    },
+    "ug_23": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 3.13
+    },
+    "ug_24": {
+     "parts": {
+      "4": 1
+     },
+     "surface_ha": 6.68
+    },
+    "ug_25": {
+     "parts": {
+      "4": 0.625,
+      "5": 0.375
+     },
+     "surface_ha": 7.62
+    },
+    "ug_26": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 6.2
+    },
+    "ug_27": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 6.67
+    },
+    "ug_28": {
+     "parts": {
+      "5": 0.375,
+      "6": 0.625
+     },
+     "surface_ha": 7.86
+    },
+    "ug_29": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 5.96
+    },
+    "ug_30": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 3.24
+    },
+    "ug_31": {
+     "parts": {
+      "4": 1
+     },
+     "surface_ha": 7.33
+    },
+    "ug_32": {
+     "parts": {
+      "4": 0.625,
+      "5": 0.375
+     },
+     "surface_ha": 4.37
+    },
+    "ug_33": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 5.41
+    },
+    "ug_34": {
+     "parts": {
+      "5": 1
+     },
+     "surface_ha": 6.38
+    },
+    "ug_35": {
+     "parts": {
+      "5": 0.375,
+      "6": 0.625
+     },
+     "surface_ha": 5.02
+    },
+    "ug_36": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 7.4
+    },
+    "ug_37": {
+     "parts": {
+      "6": 1
+     },
+     "surface_ha": 3.02
+    },
+    "ug_38": {
+     "parts": {
+      "1": 0.25,
+      "4": 0.75
+     },
+     "surface_ha": 6
+    },
+    "ug_39": {
+     "parts": {
+      "1": 0.1563,
+      "2": 0.0938,
+      "4": 0.4688,
+      "5": 0.2813
+     },
+     "surface_ha": 5.5
+    },
+    "ug_40": {
+     "parts": {
+      "2": 0.25,
+      "5": 0.75
+     },
+     "surface_ha": 7.34
+    },
+    "ug_41": {
+     "parts": {
+      "2": 0.25,
+      "5": 0.75
+     },
+     "surface_ha": 7.12
+    },
+    "ug_42": {
+     "parts": {
+      "2": 0.0938,
+      "3": 0.1563,
+      "5": 0.2813,
+      "6": 0.4688
+     },
+     "surface_ha": 5.87
+    },
+    "ug_43": {
+     "parts": {
+      "3": 0.25,
+      "6": 0.75
+     },
+     "surface_ha": 5.52
+    },
+    "ug_44": {
+     "parts": {
+      "3": 0.25,
+      "6": 0.75
+     },
+     "surface_ha": 3.1
+    },
+    "ug_45": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 8.14
+    },
+    "ug_46": {
+     "parts": {
+      "1": 0.125,
+      "2": 0.875
+     },
+     "surface_ha": 7.86
+    },
+    "ug_47": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 5.47
+    },
+    "ug_48": {
+     "parts": {
+      "2": 0.875,
+      "3": 0.125
+     },
+     "surface_ha": 7.31
+    },
+    "ug_49": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 7.41
+    },
+    "ug_50": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 3.15
+    },
+    "ug_51": {
+     "parts": {
+      "1": 1
+     },
+     "surface_ha": 5.89
+    },
+    "ug_52": {
+     "parts": {
+      "1": 0.125,
+      "2": 0.875
+     },
+     "surface_ha": 5.36
+    },
+    "ug_53": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 7.13
+    },
+    "ug_54": {
+     "parts": {
+      "2": 0.875,
+      "3": 0.125
+     },
+     "surface_ha": 7.08
+    },
+    "ug_55": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 4.67
+    },
+    "ug_56": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 3.13
+    },
+    "ug_57": {
+     "parts": {
+      "1": 0.125,
+      "2": 0.875
+     },
+     "surface_ha": 4.87
+    },
+    "ug_58": {
+     "parts": {
+      "2": 1
+     },
+     "surface_ha": 6.98
+    },
+    "ug_59": {
+     "parts": {
+      "2": 0.875,
+      "3": 0.125
+     },
+     "surface_ha": 7.15
+    },
+    "ug_60": {
+     "parts": {
+      "3": 1
+     },
+     "surface_ha": 2.71
+    }
+   }
+  }
+ ],
+ "variables_ug": [
+  {
+   "id": "regen_priorite",
+   "theme": "regeneration",
+   "libelle": "Indice de priorité"
+  },
+  {
+   "id": "regen_d_tmax",
+   "theme": "regeneration",
+   "libelle": "ΔT°max sous couvert (°C)"
+  }
+ ],
+ "absentes": {
+  "fast": "Calculer une alerte FAST dans nemetonshiny (Suivi sanitaire)."
+ }
+}

@@ -20,13 +20,14 @@ Le brief qui cadre le projet est dans
 
 | Dossier | Rôle |
 | --- | --- |
-| `r/` | Paquet R **nemetonmcp** : étend le serveur MCP de nemetonshiny (10 outils existants, dont `croiser_onf` et `appliquer_ugf` pour les UGF numérotées depuis le parcellaire ONF) avec `chercher_commune`, `parcelles_commune`, `creer_projet`, `vue_atlas`, `contexte_carto`, `detail_indicateur`, `fiche_projet` (fiche d'un projet en cache, avec un bloc `display_report` pour VICTOR), et les outils du plan d'actions (`plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus`) ; le sert en local (stdio) ou à distance (HTTP, authentification Keycloak, liens de téléchargement signés) |
+| `r/` | Paquet R **nemetonmcp** : étend le serveur MCP de nemetonshiny (10 outils existants, dont `croiser_onf` et `appliquer_ugf` pour les UGF numérotées depuis le parcellaire ONF) avec `chercher_commune`, `parcelles_commune`, `creer_projet`, `vue_atlas`, `contexte_carto`, `detail_indicateur`, `fiche_projet` (fiche d'un projet en cache, avec un bloc `display_report` pour VICTOR), les outils du plan d'actions (`plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus`) et `vue_rasters` (rasters du projet pré-rendus en PNG géoréférencés : santé des forêts, accessibilité, climat de la régénération) ; le sert en local (stdio) ou à distance (HTTP, authentification Keycloak, liens de téléchargement signés) |
 | `clients/claude/` | **Plugin Claude Code** : manifeste (`.claude-plugin/plugin.json`), déclaration du serveur MCP `nemeton` (`.mcp.json`), vues et skill ci-dessous |
 | `clients/claude/vues/moteur/` | Moteur commun des vues : `nemeton-view.js` (carte Leaflet sans tuiles, palettes, radar, i18n FR/EN, appels au connecteur) et `nemeton-view.css` (charte, thème clair et sombre, styles Leaflet inlinés) |
 | `clients/claude/vues/selection/` | **Vue 0 — Sélection des parcelles** : carte de la commune, clic pour ajouter ou retirer, recherche « AB 12 », sélection au rectangle, surface totale, BD Forêt en repère, « Créer le projet » via le connecteur ou liste d'IDU à copier |
 | `clients/claude/vues/atlas/` | **Vue 1 — Atlas du projet** : rail des 12 familles, carte choroplèthe ou bivariée 5 × 5, tableau lié à la carte, fiche d'UG avec radar 12 axes et sous-indicateurs, valeurs manquantes hachurées avec leur raison, comparaison de deux UG, « Demander à Claude », exports CSV et GeoPackage |
 | `clients/claude/vues/calcul/` | **Vue 2 — Calcul en cours** : suivi en direct d'`etat_calcul` (avancement, indicateurs, temps écoulé, tâche), Annuler avec confirmation, Relancer, journal en cas d'échec, invitation à ouvrir l'Atlas ; lisible sur téléphone |
 | `clients/claude/vues/plan/` | **Vue 3 — Plan d'actions partagé** : le plan du projet nemeton (le même que dans nemetonshiny), carte des UG colorée par prochaine action, type, priorité ou statut ; calendrier en vue simple, tableau, kanban, quantités et historique en vue experte ; fiche d'action modifiable selon les rôles, avec détection des modifications concurrentes ; propositions de Claude en ambre, à valider ; commentaires ancrés ; paquet Marculus |
+| `clients/claude/vues/rasters/` | **Vue 4 — Cartes du projet** (santé des forêts, accessibilité, régénération) : rasters pré-rendus de FORDEAD, FAST, RECONFORT, de l'accessibilité au débardage et du climat bivarié, posés sur les UG ; frise temporelle de FORDEAD avec lecture, série de la surface touchée par UG ; unités classées par part touchée ou valeur moyenne ; valeurs de régénération par UG ; opacité réglée une fois ; « Demander à Claude » |
 | `clients/claude/vues/exemples/` | Données **fictives** pour essayer les vues sans nemeton, et catalogue des familles du cœur |
 | `clients/claude/skills/nemeton-vues/` | Skill du plugin : quand ouvrir quelle vue, comment la publier, contrat de données, charte |
 | `.claude-plugin/marketplace.json` | Marketplace Claude Code du dépôt, qui pointe vers `clients/claude/` |
@@ -259,5 +260,8 @@ quelle. Les PR sont fusionnées en « squash » : leur titre devient la ligne de
   projet (verrou d'édition de l'application) : la vue le dit et l'on
   réessaie après fermeture. L'import du martelage Marculus reste dans
   nemetonshiny.
-- Lot suivant : rasters pré-rendus (lot 4 : Santé des forêts, Accessibilité,
-  reGeneration).
+- Les cartes du lot 4 montrent ce que nemetonshiny a déjà calculé (FORDEAD,
+  FAST, RECONFORT, accessibilité, régénération) ; `vue_rasters` ne relance
+  aucun calcul et indique, pour chaque groupe manquant, l'onglet de
+  nemetonshiny qui le produit. Les séries par pixel restent dans
+  nemetonshiny.

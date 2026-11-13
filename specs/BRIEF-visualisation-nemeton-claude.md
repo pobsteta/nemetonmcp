@@ -191,6 +191,7 @@ Le lot 1 tient sans rien changer au déploiement : il s'appuie sur le serveur MC
 2. **Lot 2 — Connecteur distant et vue Calcul.** Transport HTTP, authentification (Keycloak existant), service des exports par URL ; vue Calcul branchée en direct via `mcp` ; « Demander à Claude » via `sample`.
 3. **Lot 3 — Plan d'actions partagé** sur `db`, avec commentaires et import/export Marculus.
 4. **Lot 4 — Rasters** : pré-rendu PNG géoréférencé côté R, puis vues Santé des forêts, Accessibilité et reGeneration.
+   *Livré le 13 novembre 2026* : outil `vue_rasters` (PNG en Web Mercator et emprise WGS84, cache par couche) et une seule vue **Cartes du projet** à trois thèmes plutôt que trois vues, qui partagent carte, opacité, légende et fiche d'UG. Santé : FORDEAD (sévérité avec frise mensuelle ou annuelle et surface touchée cumulée par UG, date de première anomalie), FAST (un masque par indice), RECONFORT (score, classes, probabilité, palettes du manifeste du cœur). Accessibilité : débusqueur, porteur, DFCI, classes de distance de débardage. Régénération : carte climatique bivariée 10 × 10 (E-OBS, CHELSA, SAFRAN) et valeurs par UG (priorité, sensibilité, ΔT°max, ΔVPD). Seules les couches déjà calculées par nemetonshiny sont montrées ; les séries par pixel restent dans l'application.
 5. **Hors artéfacts** : l'édition des UG reste dans nemetonshiny, ouvert par `url_app` au besoin.
 
 **Décisions prises**
