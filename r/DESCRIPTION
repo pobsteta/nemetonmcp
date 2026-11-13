@@ -20,7 +20,7 @@ Depends: R (>= 4.1.0)
 Imports: nemetonshiny (>= 1.3.0), nemeton (>= 1.2.0), sf, jsonlite, httr2,
     cli, ellmer, rlang, openssl, jose, httpuv, zip, terra, png
 Suggests: mcptools (>= 1.0.3), happign, testthat (>= 3.0.0), withr
-Remotes: pobsteta/nemetonshiny, pobsteta/nemeton@*release
+Remotes: pobsteta/nemetonshiny@v2026.10.18, pobsteta/nemeton@*release
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.1
