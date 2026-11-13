@@ -620,6 +620,7 @@ await test("Rasters : santé, frise FORDEAD, fiche d'unité, légendes", async (
   await page.waitForFunction(() => { const i = document.querySelector("#carte img.leaflet-image-layer"); return i && i.complete && i.naturalWidth > 0; });
   assert.equal(await page.isVisible("#frise"), true);
   assert.match(await page.textContent("#legende"), /sain.*non coloré/);
+  assert.match(await page.textContent("#legende"), /Hors des unités de gestion.*grisé/);
   // Frise : retour à la première date.
   await page.$eval("#frise-curseur", (e) => { e.value = "0"; e.dispatchEvent(new Event("input")); });
   src = await page.getAttribute("#carte img.leaflet-image-layer", "src");

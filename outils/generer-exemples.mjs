@@ -287,7 +287,9 @@ function png(l, h, pixel) {
     for (let x = 0; x < l; x++) {
       const c = pixel(x, y), o = y * (l * 4 + 1) + 1 + x * 4;
       if (!c) continue;
-      brut[o] = parseInt(c.slice(1, 3), 16); brut[o + 1] = parseInt(c.slice(3, 5), 16); brut[o + 2] = parseInt(c.slice(5, 7), 16); brut[o + 3] = 255;
+      const h = typeof c === "string" ? c : c.c;
+      brut[o] = parseInt(h.slice(1, 3), 16); brut[o + 1] = parseInt(h.slice(3, 5), 16); brut[o + 2] = parseInt(h.slice(5, 7), 16);
+      brut[o + 3] = typeof c === "string" ? 255 : c.a;
     }
   }
   const bloc = (type, data) => {
@@ -330,8 +332,20 @@ const couleur = {
 };
 const rs = join(ex, "rasters");
 mkdirSync(join(rs, "rasters"), { recursive: true });
+// Comme vue_rasters : hors des UG, les pixels passent en gris (luminance)
+// semi-transparent, pour le contexte.
+const OPACITE_CONTEXTE = 0.35;
+const dansUG = (i, j) => ugs.some((u) => i >= u.i && i < u.i + u.membres.length && j >= u.j && j < u.j + 1);
+const griser = (h) => {
+  const v = Math.round(0.299 * parseInt(h.slice(1, 3), 16) + 0.587 * parseInt(h.slice(3, 5), 16) + 0.114 * parseInt(h.slice(5, 7), 16));
+  const g = v.toString(16).padStart(2, "0");
+  return { c: "#" + g + g + g, a: Math.round(255 * OPACITE_CONTEXTE) };
+};
 const ecrireImage = (nom, f, c) => {
-  writeFileSync(join(rs, "rasters", nom + ".png"), png(LARG, HAUT, (x, y) => c(f(...ij(x, y)))));
+  writeFileSync(join(rs, "rasters", nom + ".png"), png(LARG, HAUT, (x, y) => {
+    const [i, j] = ij(x, y), coul = c(f(i, j));
+    return coul && !dansUG(i, j) ? griser(coul) : coul;
+  }));
   return "rasters/" + nom + ".png";
 };
 // Statistiques par UG : échantillon de points dans chaque UG (rectangle de cases).
@@ -402,6 +416,7 @@ const couches = [
 writeFileSync(join(rs, "rasters.json"), JSON.stringify({
   exemple: true, project_id: "20261006_120000_demo", name: "Forêt exemple (données fictives)",
   langue: "fr", genere_a: "2026-10-06T12:00:00+0200", theme_initial: null,
+  contexte: { marge_m: 0, opacite: OPACITE_CONTEXTE },
   themes: [{ id: "sante", libelle: "Santé des forêts" }, { id: "accessibilite", libelle: "Accessibilité" },
     { id: "regeneration", libelle: "Régénération" }],
   couches,
