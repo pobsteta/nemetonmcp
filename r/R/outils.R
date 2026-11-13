@@ -19,8 +19,8 @@
 #'   `annuler_calcul`, `generer_rapport`, `exporter_gpkg`, `url_app`,
 #'   `appliquer_ugf`, `croiser_onf`) and the
 #'   lot 1 tools (`chercher_commune`, `parcelles_commune`, `creer_projet`,
-#'   `vue_atlas`, `contexte_carto`, `detail_indicateur`), `fiche_projet`
-#'   and the action plan tools.
+#'   `vue_atlas`, `contexte_carto`, `detail_indicateur`), `fiche_projet`,
+#'   the action plan tools and `vue_rasters` (lot 4).
 #' @export
 outils_mcp <- function() {
   t <- ellmer::type_string
@@ -87,6 +87,16 @@ outils_mcp <- function() {
       "Vector map context of a project (BD TOPO roads, rivers, water bodies) clipped to the project, as contexte.geojson to join to the artifact (external tiles are blocked in artifacts).",
       list(projet = projet_arg,
            marge_m = num("Margin around the project in metres (default 300).", required = FALSE)),
+      lecture = TRUE),
+    .outil(vue_rasters, "vue_rasters",
+      "Rasters of a project for the raster view (forest health: FORDEAD, FAST, RECONFORT; harvesting accessibility; regeneration climate map), rendered as georeferenced PNG images (Web Mercator, WGS84 bounds for an image overlay) from what nemetonshiny cached; nothing is recomputed. Without couche: writes rasters.json (manifest: layers, legends, per-unit statistics, FORDEAD timeline and per-unit series), ugs.geojson (unit outlines with regeneration values) and the images, to join to the artifact (images under rasters/); 'absentes' lists missing groups and how to produce them. With couche (and date for fordead_severite): renders that layer only, with png_base64 on demand. Images are cached until their source changes; the first call can take a minute.",
+      list(projet = projet_arg,
+           couche = t("Layer id from rasters.json (e.g. 'fordead_severite', 'acc_skidder'); omit for the whole bundle.", required = FALSE),
+           date = t("For fordead_severite: pixels first detected on or before this date (YYYY-MM-DD).", required = FALSE),
+           langue = langue_arg,
+           inclure_png = b("With couche: also return the PNG base64 encoded (default false).", required = FALSE),
+           max_px = ellmer::type_integer("Largest side of an image in pixels (default 1600).", required = FALSE),
+           theme = t("Theme the view opens on: 'sante' (forest health), 'accessibilite' or 'regeneration' (bundle only).", required = FALSE)),
       lecture = TRUE),
     .outil(detail_indicateur, "detail_indicateur",
       "Detail of one sub-indicator for one management unit: raw value, 0-100 score, status explaining a missing value, label, help text, family.",

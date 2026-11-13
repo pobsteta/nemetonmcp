@@ -1,0 +1,643 @@
+<title>Santé des forêts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=Spectral:wght@500;600&display=swap">
+<link rel="stylesheet" href="nemeton-view.css">
+<style>
+  /* Vue 4 : thèmes (santé, accessibilité, régénération) | carte et frise | fiche d'UG. */
+  :root { --rs-rail: 260px; --rs-panneau: 360px; }
+  .rs {
+    display: grid; min-height: 0;
+    grid-template-columns: var(--rs-rail) minmax(0, 1fr) var(--rs-panneau);
+  }
+  .rs__themes { display: flex; gap: 4px; flex-wrap: wrap; }
+  .rs__themes button {
+    padding: 7px 12px; border: 1px solid var(--nv-trait); border-radius: 999px; background: var(--nv-surface);
+    font: 700 13px var(--nv-police-texte); color: var(--nv-encre-2); cursor: pointer;
+  }
+  .rs__themes button[aria-selected="true"] { color: var(--nv-encre); border-color: var(--nv-action-encre); background: var(--nv-action-voile); }
+  .rs__rail {
+    min-height: 0; overflow: auto; padding: 12px 10px 16px;
+    background: var(--nv-surface); border-right: 1px solid var(--nv-trait);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .rs__couches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .rs__couche {
+    width: 100%; text-align: left; padding: 8px 9px; border: 1px solid transparent; border-radius: var(--nv-r);
+    background: transparent; color: var(--nv-encre); cursor: pointer; font: 14px/1.25 var(--nv-police-texte);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .rs__couche:hover { background: var(--nv-surface-2); }
+  .rs__couche[aria-pressed="true"] { background: var(--nv-action-voile); border-color: var(--nv-action-encre); }
+  .rs__couche small { color: var(--nv-encre-2); font-size: 12px; }
+  .rs__absente { font-size: 12px; color: var(--nv-encre-2); border-left: 3px solid var(--nv-trait); padding: 2px 0 2px 8px; }
+  .rs__opacite { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--nv-encre-2); }
+
+  .rs__carte { position: relative; min-height: 0; }
+  .rs__carte .nv-carte { position: absolute; inset: 0; }
+  .rs__titre-carte {
+    position: absolute; z-index: 800; top: 10px; left: 56px; right: 12px; pointer-events: none;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .rs__titre-carte span {
+    background: var(--nv-surface); border: 1px solid var(--nv-trait); border-radius: var(--nv-r);
+    padding: 4px 8px; font-size: 13px; font-weight: 700; box-shadow: var(--nv-ombre);
+  }
+  .rs__titre-carte .rs__source { font-weight: 400; color: var(--nv-encre-2); }
+  .rs-pixels { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .rs__frise {
+    position: absolute; z-index: 800; right: 12px; bottom: 22px; width: min(420px, calc(100% - 260px));
+    background: var(--nv-surface); border: 1px solid var(--nv-trait); border-radius: var(--nv-r);
+    box-shadow: var(--nv-ombre); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center;
+  }
+  .rs__frise input { width: 100%; accent-color: var(--nv-action-encre); }
+  .rs__frise-date { grid-column: 2; display: flex; justify-content: space-between; font-size: 12px; color: var(--nv-encre-2); }
+  .rs__frise-date strong { color: var(--nv-encre); font-family: var(--nv-police-chiffres); }
+  .rs__case { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--nv-trait); }
+  .rs__case--vide { background: transparent; border-style: dashed; }
+  .rs__leg-ligne { display: flex; align-items: center; gap: 2px; line-height: 1.6; }
+  .rs__biv { display: grid; gap: 1px; }
+  .rs__biv span { width: 12px; height: 12px; }
+  .rs__biv-cadre { display: grid; grid-template-columns: auto auto; gap: 4px 6px; align-items: end; }
+  .rs__biv-y { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; color: var(--nv-encre-2); }
+  .rs__biv-x { grid-column: 2; font-size: 11px; color: var(--nv-encre-2); }
+
+  .rs__panneau {
+    min-height: 0; overflow: auto; background: var(--nv-surface); border-left: 1px solid var(--nv-trait);
+    padding: 12px var(--nv-gouttiere) 18px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .rs__classement { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .rs__classement li button {
+    all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px;
+    padding: 6px 4px; border-top: 1px solid var(--nv-trait); font-size: 13px;
+  }
+  .rs__classement li button:hover, .rs__classement li button.actif { background: var(--nv-action-voile); }
+  .rs__classement li button:focus-visible { outline: 2px solid var(--nv-action-encre); }
+  .rs__classement .nv-barre { grid-column: 1 / 3; }
+  .rs__val { font-family: var(--nv-police-chiffres); text-align: right; }
+  .rs__fiche-tete h2 { font-size: 22px; margin: 2px 0; }
+  .rs__parts { display: flex; height: 14px; border-radius: 3px; overflow: hidden; border: 1px solid var(--nv-trait); }
+  .rs__parts span { display: block; height: 100%; }
+  .rs__parts-leg { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+  .rs__parts-leg div { display: flex; justify-content: space-between; gap: 10px; }
+  .rs__serie { width: 100%; height: 120px; }
+  .rs__serie rect { fill: var(--nv-action-encre); }
+  .rs__serie text { font: 10px var(--nv-police-chiffres); fill: var(--nv-encre-2); }
+  .rs__chiffres { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .rs__chiffres div { display: flex; flex-direction: column; }
+  .rs__chiffres .nv-chiffre { font-size: 18px; font-weight: 600; }
+  .rs__exemple { font-size: 12px; color: var(--nv-encre-2); border: 1px dashed var(--nv-trait); border-radius: var(--nv-r); padding: 4px 8px; }
+  .rs__claude textarea { min-height: 64px; resize: vertical; }
+  .rs__bouton-ia { border-color: var(--nv-ia); color: var(--nv-ia-encre); }
+  .rs__bouton-ia:hover { background: var(--nv-ia-voile); }
+
+  @media (max-width: 1100px) { :root { --rs-panneau: 320px; --rs-rail: 230px; } }
+  @media (max-width: 860px) {
+    .nv-app { height: auto; min-height: 100%; }
+    .rs { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(340px, 60vh) auto; }
+    .rs__rail { border-right: 0; border-bottom: 1px solid var(--nv-trait); overflow: visible; }
+    .rs__couches { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+    .rs__couche { min-width: 180px; }
+    .rs__panneau { border-left: 0; border-top: 1px solid var(--nv-trait); overflow: visible; }
+    .rs__frise { left: 12px; right: 12px; width: auto; bottom: auto; top: 52px; }
+  }
+</style>
+
+<div class="nv-app">
+  <header class="nv-entete">
+    <div class="nv-entete__titre">
+      <span class="nv-etiquette" data-t="eyebrow">Cartes du projet</span>
+      <h1 id="titre">Projet</h1>
+    </div>
+    <div class="rs__themes" role="tablist" id="themes" aria-label="Thèmes"></div>
+    <div class="nv-entete__outils">
+      <span class="rs__exemple" id="bandeau-exemple" hidden data-t="exemple">Données fictives</span>
+      <div class="nv-bascule" role="group" aria-label="Langue">
+        <button type="button" id="lang-fr" aria-pressed="true">FR</button>
+        <button type="button" id="lang-en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="rs">
+    <nav class="rs__rail" aria-labelledby="titre-couches">
+      <span class="nv-etiquette" id="titre-couches" data-t="couches">Couches</span>
+      <ul class="rs__couches" id="couches"></ul>
+      <p class="nv-muet" id="aucune-couche" hidden data-t="aucune_couche">Aucune couche calculée pour ce thème.</p>
+      <div id="absentes"></div>
+      <label class="rs__opacite" for="opacite">
+        <span><span data-t="opacite">Opacité</span> <strong class="nv-num" id="opacite-val"></strong></span>
+        <input type="range" id="opacite" min="0.2" max="1" step="0.05">
+      </label>
+    </nav>
+
+    <section class="rs__carte" aria-label="Carte">
+      <div class="nv-carte" id="carte"></div>
+      <div class="rs__titre-carte"><span id="titre-carte"></span><span class="rs__source" id="source-carte" hidden></span></div>
+      <div class="nv-legende" id="legende"></div>
+      <div class="rs__frise" id="frise" hidden>
+        <button class="nv-bouton" type="button" id="btn-lecture" data-t="lire">Lire</button>
+        <input type="range" id="frise-curseur" min="0" max="0" step="1" aria-describedby="frise-date">
+        <div class="rs__frise-date"><span data-t="detecte_avant">Détecté jusqu'au</span> <strong id="frise-date"></strong></div>
+      </div>
+    </section>
+
+    <aside class="rs__panneau">
+      <section id="bloc-fiche">
+        <p class="nv-muet" id="fiche-vide" data-t="fiche_vide">Cliquez sur une unité de gestion, sur la carte ou dans la liste.</p>
+        <div id="fiche" hidden>
+          <div class="rs__fiche-tete">
+            <span class="nv-etiquette" id="fiche-parcelles"></span>
+            <h2 id="fiche-titre"></h2>
+            <span class="nv-muet nv-chiffre" id="fiche-surface"></span>
+          </div>
+          <div id="fiche-stats"></div>
+        </div>
+      </section>
+      <section>
+        <span class="nv-etiquette" id="titre-classement"></span>
+        <ul class="rs__classement" id="classement"></ul>
+      </section>
+      <section class="rs__claude nv-bloc" id="bloc-claude" hidden>
+        <span class="nv-etiquette" data-t="demander">Demander à Claude</span>
+        <textarea class="nv-champ" id="question" data-t-placeholder="question_aide"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="nv-bouton rs__bouton-ia" type="button" id="btn-demander" data-t="envoyer">Demander</button>
+          <span class="nv-muet" style="font-size:12px" id="contexte-question"></span>
+        </div>
+        <div class="nv-ia" id="reponse" hidden>
+          <span class="nv-ia__marque" data-t="genere_ia">Généré par IA · à vérifier</span>
+          <div class="nv-ia__texte" id="reponse-texte"></div>
+        </div>
+      </section>
+      <div class="nv-statut" id="statut" role="status" aria-live="polite"></div>
+    </aside>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="nemeton-view.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  NV.textes({
+    fr: {
+      eyebrow: "Cartes du projet", exemple: "Données fictives", couches: "Couches",
+      sante: "Santé des forêts", accessibilite: "Accessibilité", regeneration: "Régénération",
+      aucune_couche: "Aucune couche calculée pour ce thème.", a_produire: "À produire : {texte}",
+      opacite: "Opacité", lire: "Lire", pause: "Pause", detecte_avant: "Détecté jusqu'au",
+      fiche_vide: "Cliquez sur une unité de gestion, sur la carte ou dans la liste.",
+      valeurs_ug: "Valeur par unité", classement_classes: "Unités les plus concernées", classement_continu: "Unités par valeur moyenne",
+      classement_ug: "Unités par valeur", part_peinte: "{p} de la surface", moyenne: "Moyenne", min: "Min", max: "Max",
+      non_peint: "non coloré", serie: "Surface touchée (ha), cumulée", hors_couche: "Hors de l'emprise de cette couche.",
+      manquant: "Valeur manquante", demander: "Demander à Claude", question_aide: "Votre question sur cette carte ou cette unité…",
+      envoyer: "Demander", genere_ia: "Généré par IA · à vérifier", reflexion: "Claude réfléchit…",
+      contexte_ug: "Contexte : {ug} · {couche}", contexte_projet: "Contexte : projet · {couche}",
+      erreur_ia: "Claude n'a pas pu répondre : {message}",
+      erreur_donnees: "Les cartes n'ont pas pu être chargées : {message}", erreur_image: "Image introuvable : {image}",
+      date_couche: "{date}", ha: "{n} ha"
+    },
+    en: {
+      eyebrow: "Project maps", exemple: "Fictional data", couches: "Layers",
+      sante: "Forest health", accessibilite: "Accessibility", regeneration: "Regeneration",
+      aucune_couche: "No layer computed for this theme.", a_produire: "To produce: {texte}",
+      opacite: "Opacity", lire: "Play", pause: "Pause", detecte_avant: "Detected up to",
+      fiche_vide: "Click a management unit, on the map or in the list.",
+      valeurs_ug: "Value per unit", classement_classes: "Most affected units", classement_continu: "Units by mean value",
+      classement_ug: "Units by value", part_peinte: "{p} of the area", moyenne: "Mean", min: "Min", max: "Max",
+      non_peint: "not coloured", serie: "Affected area (ha), cumulative", hors_couche: "Outside this layer's extent.",
+      manquant: "Missing value", demander: "Ask Claude", question_aide: "Your question about this map or unit…",
+      envoyer: "Ask", genere_ia: "AI generated · to be checked", reflexion: "Claude is thinking…",
+      contexte_ug: "Context: {ug} · {couche}", contexte_projet: "Context: project · {couche}",
+      erreur_ia: "Claude could not answer: {message}",
+      erreur_donnees: "The maps could not be loaded: {message}", erreur_image: "Image not found: {image}",
+      date_couche: "{date}", ha: "{n} ha"
+    }
+  });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var E = NV.echapper;
+  // Valeur haute = défavorable pour les variables de régénération (comme dans
+  // nemetonshiny) : vert pour les basses, rouge pour les hautes.
+  var RAMPE_UG = ["#1a9850", "#66bd63", "#a6d96a", "#d9ef8b", "#fee08b", "#fdae61", "#f46d43", "#d73027"];
+
+  var man = null, ugsGj = null;
+  var couchesUG = new Map(), props = new Map();
+  var etat = NV.stockage.lire("nemeton-rasters-etat", {}) || {};
+  var theme = null, selection = null;   // selection : {type: "raster"|"ug", id}
+  var indexFrise = null, choisie = null, lecture = null;
+  var opacite = etat.opacite || 0.8;
+  var sample = null;
+  var carte = NV.carte("carte", { zoomControl: true });
+  var image = null, coucheUG = null;
+
+  function memoriser() {
+    var t = {}; t.opacite = opacite; t.theme = theme;
+    if (selection) t["sel_" + theme] = selection.type + ":" + selection.id;
+    NV.stockage.ecrire("nemeton-rasters-etat", Object.assign({}, etat, t));
+    etat = NV.stockage.lire("nemeton-rasters-etat", {}) || {};
+  }
+  function couchesDuTheme(t) { return (man.couches || []).filter(function (c) { return c.theme === t; }); }
+  function variablesDuTheme(t) { return (man.variables_ug || []).filter(function (v) { return v.theme === t; }); }
+  function coucheCourante() {
+    if (!selection || selection.type !== "raster") return null;
+    return (man.couches || []).filter(function (c) { return c.id === selection.id; })[0] || null;
+  }
+  function variableCourante() {
+    if (!selection || selection.type !== "ug") return null;
+    return (man.variables_ug || []).filter(function (v) { return v.id === selection.id; })[0] || null;
+  }
+  function nomTheme(t) { return NV.t(t.id) !== t.id ? NV.t(t.id) : t.libelle; }
+  function pourcent(x) { return NV.nombre(100 * x, 0) + " %"; }
+  function dateLisible(iso) { return iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? NV.date(iso) : (iso || ""); }
+
+  /* ---------------------------------------------- thèmes et couches */
+  function rendreThemes() {
+    $("themes").innerHTML = (man.themes || []).map(function (t) {
+      var n = couchesDuTheme(t.id).length + variablesDuTheme(t.id).length;
+      return "<button type='button' role='tab' data-theme='" + E(t.id) + "' aria-selected='" + (t.id === theme) + "'>" +
+        E(nomTheme(t)) + " <span class='nv-muet nv-num'>" + n + "</span></button>";
+    }).join("");
+  }
+  $("themes").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-theme]"); if (!b) return;
+    choisirTheme(b.getAttribute("data-theme"));
+  });
+
+  function choisirTheme(t) {
+    theme = t;
+    var memo = etat["sel_" + t], sel = null;
+    if (memo) {
+      var p = memo.split(":"), type = p.shift(), id = p.join(":");
+      var existe = type === "raster" ? couchesDuTheme(t).some(function (c) { return c.id === id; })
+        : variablesDuTheme(t).some(function (v) { return v.id === id; });
+      if (existe) sel = { type: type, id: id };
+    }
+    if (!sel) {
+      var c = couchesDuTheme(t)[0], v = variablesDuTheme(t)[0];
+      sel = c ? { type: "raster", id: c.id } : v ? { type: "ug", id: v.id } : null;
+    }
+    choisirSelection(sel);
+  }
+
+  function rendreRail() {
+    var cs = couchesDuTheme(theme), vs = variablesDuTheme(theme);
+    var html = cs.map(function (c) {
+      var actif = selection && selection.type === "raster" && selection.id === c.id;
+      return "<li><button type='button' class='rs__couche' data-raster='" + E(c.id) + "' aria-pressed='" + !!actif + "'>" +
+        "<span>" + E(c.libelle) + "</span><small>" + E([c.source, dateLisible(c.date)].filter(Boolean).join(" · ")) + "</small></button></li>";
+    });
+    if (vs.length) html.push("<li><span class='nv-etiquette' style='display:block;margin-top:8px'>" + E(NV.t("valeurs_ug")) + "</span></li>");
+    vs.forEach(function (v) {
+      var actif = selection && selection.type === "ug" && selection.id === v.id;
+      html.push("<li><button type='button' class='rs__couche' data-ug-var='" + E(v.id) + "' aria-pressed='" + !!actif + "'><span>" + E(v.libelle) + "</span></button></li>");
+    });
+    $("couches").innerHTML = html.join("");
+    $("aucune-couche").hidden = cs.length + vs.length > 0;
+    var groupes = { sante: ["fordead", "fast", "reconfort"], accessibilite: ["accessibilite"], regeneration: ["regeneration"] }[theme] || [];
+    var abs = man.absentes || {};
+    $("absentes").innerHTML = groupes.filter(function (g) { return abs[g]; }).map(function (g) {
+      return "<p class='rs__absente'>" + E(NV.t("a_produire", { texte: abs[g] })) + "</p>";
+    }).join("");
+  }
+  $("couches").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-raster],[data-ug-var]"); if (!b) return;
+    choisirSelection(b.hasAttribute("data-raster") ? { type: "raster", id: b.getAttribute("data-raster") } : { type: "ug", id: b.getAttribute("data-ug-var") });
+  });
+
+  function choisirSelection(sel) {
+    arreterLecture();
+    selection = sel;
+    var c = coucheCourante();
+    indexFrise = c && c.frise && c.frise.length ? c.frise.length - 1 : null;
+    memoriser();
+    tout();
+  }
+
+  /* ---------------------------------------------- image de la carte */
+  function imageCourante(c) {
+    if (indexFrise != null && c.frise && c.frise[indexFrise]) return c.frise[indexFrise].image;
+    return c.image;
+  }
+  function rendreImage() {
+    var c = coucheCourante();
+    if (image) { carte.removeLayer(image); image = null; }
+    if (!c || !c.image || !c.emprise) return;
+    image = L.imageOverlay(imageCourante(c), c.emprise, {
+      opacity: opacite, interactive: false, alt: c.libelle,
+      className: c.legende && c.legende.type === "continu" ? "" : "rs-pixels"
+    }).addTo(carte);
+    image.on("error", function () { NV.annoncer($("statut"), NV.t("erreur_image", { image: imageCourante(c) }), 0); });
+  }
+  $("opacite").addEventListener("input", function () {
+    opacite = Number(this.value);
+    $("opacite-val").textContent = pourcent(opacite);
+    if (image) image.setOpacity(opacite);
+    recolorerUG();
+  });
+  $("opacite").addEventListener("change", memoriser);
+
+  /* ---------------------------------------------- frise */
+  function rendreFrise() {
+    var c = coucheCourante(), f = c && c.frise;
+    $("frise").hidden = !(f && f.length > 1);
+    if ($("frise").hidden) return;
+    $("frise-curseur").max = String(f.length - 1);
+    $("frise-curseur").value = String(indexFrise);
+    $("frise-date").textContent = dateLisible(f[indexFrise].date);
+    $("btn-lecture").textContent = NV.t(lecture ? "pause" : "lire");
+  }
+  function allerA(i) {
+    var c = coucheCourante(); if (!c || !c.frise) return;
+    indexFrise = Math.max(0, Math.min(c.frise.length - 1, i));
+    if (image) image.setUrl(imageCourante(c)); else rendreImage();
+    rendreFrise(); rendreFiche();
+  }
+  $("frise-curseur").addEventListener("input", function () { arreterLecture(); allerA(Number(this.value)); });
+  function arreterLecture() { if (lecture) { clearInterval(lecture); lecture = null; } }
+  $("btn-lecture").addEventListener("click", function () {
+    var c = coucheCourante(); if (!c || !c.frise) return;
+    if (lecture) { arreterLecture(); rendreFrise(); return; }
+    if (indexFrise >= c.frise.length - 1) allerA(0);
+    lecture = setInterval(function () {
+      if (indexFrise >= c.frise.length - 1) { arreterLecture(); rendreFrise(); return; }
+      allerA(indexFrise + 1);
+    }, NV.mouvementReduit() ? 2000 : 900);
+    rendreFrise();
+  });
+
+  /* ---------------------------------------------- légende */
+  function formatValeur(v, leg) {
+    if (leg && leg.format === "date") return NV.date(new Date(Number(v) * 86400000).toISOString().slice(0, 10));
+    return NV.nombre(v, Math.abs(v) < 10 ? 2 : 0);
+  }
+  function degrade(couleurs) {
+    return couleurs.map(function (c, i, a) { return c + " " + Math.round(i / (a.length - 1) * 100) + "%"; }).join(",");
+  }
+  function rendreLegende() {
+    var c = coucheCourante(), v = variableCourante(), h = "";
+    if (c) {
+      var leg = c.legende || {};
+      if (leg.type === "classes") {
+        h = (leg.classes || []).map(function (k) {
+          return "<div class='rs__leg-ligne'><span class='rs__case" + (k.couleur ? "" : " rs__case--vide") + "' style='background:" +
+            (k.couleur || "transparent") + "'></span>" + E(k.libelle || String(k.valeur)) + (k.couleur ? "" : " <span class='nv-muet'>(" + E(NV.t("non_peint")) + ")</span>") + "</div>";
+        }).join("");
+      } else if (leg.type === "continu") {
+        h = "<div class='nv-degrade' style='background:linear-gradient(90deg," + degrade(leg.couleurs || []) + ")'></div>" +
+          "<div class='nv-legende__echelle nv-num'><span>" + E(formatValeur(leg.min, leg)) + "</span><span>" + E(formatValeur(leg.max, leg)) + "</span></div>";
+      } else if (leg.type === "bivarie") {
+        var n = leg.n, coul = {};
+        (leg.classes || []).forEach(function (k) { coul[k.valeur] = k.couleur; });
+        var cases = [];
+        for (var y = n; y >= 1; y--) for (var x = 1; x <= n; x++) cases.push("<span style='background:" + (coul[(y - 1) * n + x] || "transparent") + "'></span>");
+        var bx = leg.axe_x.bornes || [], by = leg.axe_y.bornes || [];
+        h = "<div class='rs__biv-cadre'><span class='rs__biv-y'>" + E(leg.axe_y.nom) + " " + E(NV.nombre(by[0], 1)) + " → " + E(NV.nombre(by[1], 1)) + " " + E(leg.axe_y.unite || "") +
+          "</span><div class='rs__biv' style='grid-template-columns:repeat(" + n + ",12px)'>" + cases.join("") + "</div><span class='rs__biv-x'>" +
+          E(leg.axe_x.nom) + " " + E(NV.nombre(bx[0], 0)) + " → " + E(NV.nombre(bx[1], 0)) + " " + E(leg.axe_x.unite || "") + "</span></div>";
+      }
+      $("titre-carte").textContent = c.libelle + (c.date ? " · " + dateLisible(c.date) : "");
+      $("source-carte").textContent = c.source || ""; $("source-carte").hidden = !c.source;
+    } else if (v) {
+      var d = domaineUG(v.id);
+      h = "<div class='nv-degrade' style='background:linear-gradient(90deg," + degrade(RAMPE_UG) + ")'></div>" +
+        "<div class='nv-legende__echelle nv-num'><span>" + E(NV.nombre(d[0], 2)) + "</span><span>" + E(NV.nombre(d[1], 2)) + "</span></div>" +
+        "<div style='margin-top:6px'><span class='rs__case' style='background:repeating-linear-gradient(45deg,var(--nv-manquant-fond) 0 3px,var(--nv-manquant-trait) 3px 4px)'></span>" + E(NV.t("manquant")) + "</div>";
+      $("titre-carte").textContent = v.libelle; $("source-carte").hidden = true;
+    } else {
+      $("titre-carte").textContent = ""; $("source-carte").hidden = true;
+    }
+    $("legende").innerHTML = h;
+    $("legende").hidden = !h;
+  }
+
+  /* ---------------------------------------------- unités de gestion */
+  function domaineUG(col) {
+    var vals = Array.from(props.values()).map(function (p) { return p[col]; }).filter(function (x) { return x != null && isFinite(x); });
+    return vals.length ? [Math.min.apply(null, vals), Math.max.apply(null, vals)] : [0, 1];
+  }
+  function couleurUG(p) {
+    var v = variableCourante(); if (!v) return null;
+    var x = p[v.id]; if (x == null || !isFinite(x)) return "url(#nv-hachures)";
+    var d = domaineUG(v.id), t = d[1] > d[0] ? (x - d[0]) / (d[1] - d[0]) : 0.5;
+    return RAMPE_UG[Math.max(0, Math.min(RAMPE_UG.length - 1, Math.round(t * (RAMPE_UG.length - 1))))];
+  }
+  function styleUG(p) {
+    var actif = p.ug_id === choisie, fond = couleurUG(p);
+    return {
+      fillColor: fond || "transparent", fillOpacity: fond ? opacite : 0,
+      color: actif ? NV.css("--nv-encre") : (fond ? NV.css("--nv-surface") : NV.css("--nv-encre-2")),
+      weight: actif ? 2.6 : (fond ? 0.8 : 0.9), opacity: 0.9
+    };
+  }
+  function recolorerUG() { couchesUG.forEach(function (c, id) { c.setStyle(styleUG(props.get(id))); }); }
+
+  // Valeur de classement d'une unité pour la sélection courante.
+  function scoreUG(id) {
+    var c = coucheCourante(), v = variableCourante();
+    if (v) { var x = props.get(id)[v.id]; return x == null ? null : x; }
+    if (!c || !c.par_ug || !c.par_ug[id]) return null;
+    var s = c.par_ug[id];
+    if (c.legende.type === "continu") return s.moyenne;
+    if (c.frise && c.serie_ug && c.serie_ug.surfaces_ha && c.serie_ug.surfaces_ha[id] && indexFrise != null) {
+      var p = props.get(id), surf = p && p.surface_ha;
+      var ha = c.serie_ug.surfaces_ha[id][indexFrise];
+      return surf ? ha / surf : ha;
+    }
+    return partPeinte(c, s);
+  }
+  function partPeinte(c, s) {
+    var peintes = {};
+    (c.legende.classes || []).forEach(function (k) { if (k.couleur) peintes[k.valeur] = true; });
+    var t = 0;
+    Object.keys(s.parts || {}).forEach(function (k) { if (peintes[k]) t += s.parts[k]; });
+    return t;
+  }
+  function rendreClassement() {
+    var c = coucheCourante(), v = variableCourante();
+    var bivarie = c && c.legende && c.legende.type === "bivarie";
+    var cle = v ? "classement_ug" : c && c.legende.type === "continu" ? "classement_continu" : "classement_classes";
+    $("titre-classement").textContent = NV.t(cle);
+    if ((!c && !v) || bivarie) { $("classement").innerHTML = ""; $("titre-classement").textContent = ""; return; }
+    var liste = Array.from(props.values()).map(function (p) { return { p: p, s: scoreUG(p.ug_id) }; })
+      .filter(function (x) { return x.s != null; })
+      .sort(function (a, b) { return b.s - a.s; }).slice(0, 12);
+    var max = liste.length ? Math.max.apply(null, liste.map(function (x) { return Math.abs(x.s); })) || 1 : 1;
+    var parts = !v && c.legende.type !== "continu";
+    $("classement").innerHTML = liste.map(function (x) {
+      var val = parts ? pourcent(x.s) : NV.nombre(x.s, Math.abs(x.s) < 10 ? 2 : 1);
+      var w = parts ? 100 * x.s : 100 * Math.abs(x.s) / max;
+      return "<li><button type='button' data-ug='" + E(x.p.ug_id) + "'" + (x.p.ug_id === choisie ? " class='actif'" : "") + "><span>" + E(x.p.label) +
+        "</span><span class='rs__val'>" + val + "</span><span class='nv-barre'><span style='width:" + Math.max(0, Math.min(100, w)) + "%;background:var(--nv-action-encre)'></span></span></button></li>";
+    }).join("");
+  }
+  $("classement").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-ug]"); if (b) choisir(b.getAttribute("data-ug"), true);
+  });
+
+  /* ---------------------------------------------- fiche d'unité */
+  function choisir(id, centrer) {
+    choisie = id;
+    recolorerUG(); rendreFiche(); rendreClassement();
+    var c = couchesUG.get(id);
+    if (c && centrer) carte.flyToBounds(c.getBounds(), { maxZoom: 16, padding: [40, 40], duration: NV.mouvementReduit() ? 0 : 0.5 });
+  }
+  function serieSvg(dates, valeurs) {
+    var l = 300, h = 120, m = 18, n = valeurs.length, max = Math.max.apply(null, valeurs.concat([0.01]));
+    var bw = (l - 2 * m) / n * 0.7;
+    var barres = valeurs.map(function (v, i) {
+      var x = m + (i + 0.15) * (l - 2 * m) / n, hh = (h - 2 * m) * v / max;
+      return "<rect x='" + x.toFixed(1) + "' y='" + (h - m - hh).toFixed(1) + "' width='" + bw.toFixed(1) + "' height='" + hh.toFixed(1) + "'" +
+        (i === indexFrise ? " style='fill:var(--nv-ia)'" : "") + "><title>" + E(dateLisible(dates[i])) + " : " + E(NV.nombre(v, 2)) + " ha</title></rect>";
+    }).join("");
+    var lbl = function (i) { return "<text x='" + (m + (i + 0.5) * (l - 2 * m) / n).toFixed(1) + "' y='" + (h - 4) + "' text-anchor='middle'>" + E(String(dates[i]).slice(0, 7)) + "</text>"; };
+    return "<svg class='rs__serie' viewBox='0 0 " + l + " " + h + "' role='img' aria-label='" + E(NV.t("serie")) + "'>" + barres +
+      lbl(0) + (n > 1 ? lbl(n - 1) : "") + "<text x='" + m + "' y='12'>" + E(NV.nombre(max, 1)) + " ha</text></svg>";
+  }
+  function rendreFiche() {
+    var p = choisie ? props.get(choisie) : null;
+    $("fiche-vide").hidden = !!p; $("fiche").hidden = !p;
+    majContexteQuestion();
+    if (!p) return;
+    $("fiche-titre").textContent = p.label;
+    $("fiche-parcelles").textContent = NV.parcellesUG(p) || p.ug_id;
+    $("fiche-surface").textContent = NV.t("ha", { n: NV.nombre(p.surface_ha, 2) });
+    var c = coucheCourante(), v = variableCourante(), h = "";
+    if (v) {
+      var x = p[v.id];
+      h = "<div class='rs__chiffres'><div><span class='nv-etiquette'>" + E(v.libelle) + "</span><span class='nv-chiffre'>" +
+        (x == null ? E(NV.t("manquant")) : NV.nombre(x, 2)) + "</span></div></div>";
+    } else if (c) {
+      var s = c.par_ug && c.par_ug[p.ug_id];
+      if (!s) h = "<p class='nv-muet'>" + E(NV.t("hors_couche")) + "</p>";
+      else if (c.legende.type === "continu") {
+        h = "<div class='rs__chiffres'>" + ["moyenne", "min", "max"].map(function (k) {
+          return "<div><span class='nv-etiquette'>" + E(NV.t(k)) + "</span><span class='nv-chiffre'>" + E(formatValeur(s[k], c.legende)) + "</span></div>";
+        }).join("") + "</div>";
+      } else {
+        var lib = {}, coul = {};
+        (c.legende.classes || []).forEach(function (k) { lib[k.valeur] = k.libelle || String(k.valeur); coul[k.valeur] = k.couleur; });
+        var cles = Object.keys(s.parts || {}).sort(function (a, b) { return Number(a) - Number(b); });
+        h = "<div class='rs__parts' aria-hidden='true'>" + cles.map(function (k) {
+          return "<span style='width:" + (100 * s.parts[k]).toFixed(1) + "%;background:" + (coul[k] || "var(--nv-surface-2)") + "'></span>";
+        }).join("") + "</div><div class='rs__parts-leg'>" + cles.map(function (k) {
+          return "<div><span><span class='rs__case" + (coul[k] ? "" : " rs__case--vide") + "' style='background:" + (coul[k] || "transparent") + "'></span>" +
+            E(lib[k] || k) + "</span><span class='nv-num'>" + pourcent(s.parts[k]) + "</span></div>";
+        }).join("") + "</div>";
+        if (c.frise && c.serie_ug && c.serie_ug.surfaces_ha && c.serie_ug.surfaces_ha[p.ug_id]) {
+          h += "<span class='nv-etiquette' style='display:block;margin-top:10px'>" + E(NV.t("serie")) + "</span>" +
+            serieSvg(c.serie_ug.dates, c.serie_ug.surfaces_ha[p.ug_id]);
+        }
+      }
+    }
+    $("fiche-stats").innerHTML = h;
+  }
+
+  /* ---------------------------------------------- Demander à Claude */
+  function nomSelection() { var c = coucheCourante(), v = variableCourante(); return c ? c.libelle : v ? v.libelle : ""; }
+  function majContexteQuestion() {
+    var p = choisie ? props.get(choisie) : null;
+    $("contexte-question").textContent = p ? NV.t("contexte_ug", { ug: p.label, couche: nomSelection() }) : NV.t("contexte_projet", { couche: nomSelection() });
+  }
+  var demande = null;
+  $("btn-demander").addEventListener("click", function () {
+    var question = $("question").value.trim();
+    if (!question || !sample) return;
+    if (demande) demande.abort();
+    demande = new AbortController();
+    var c = coucheCourante(), v = variableCourante(), p = choisie ? props.get(choisie) : null;
+    var contexte = {
+      projet: man.name, theme: theme,
+      couche: c ? { id: c.id, libelle: c.libelle, source: c.source, date: c.date, legende: c.legende,
+        date_frise: indexFrise != null && c.frise ? c.frise[indexFrise].date : null } : null,
+      variable_ug: v ? { id: v.id, libelle: v.libelle } : null,
+      unite: p ? { label: p.label, surface_ha: p.surface_ha, statistiques: c && c.par_ug ? c.par_ug[p.ug_id] || null : null,
+        serie: c && c.serie_ug && c.serie_ug.surfaces_ha ? { dates: c.serie_ug.dates, surfaces_ha: c.serie_ug.surfaces_ha[p.ug_id] } : null,
+        valeur: v ? p[v.id] : null } : null,
+      classement: Array.from(props.values()).map(function (x) { return { label: x.label, valeur: scoreUG(x.ug_id) }; })
+        .filter(function (x) { return x.valeur != null; }).sort(function (a, b) { return b.valeur - a.valeur; }).slice(0, 10)
+    };
+    var consigne = (NV.lang === "en" ? "Answer in English" : "Réponds en français, en vouvoyant le lecteur") +
+      ". You help read a forest map made with nemeton (forest health: FORDEAD, FAST, RECONFORT from Sentinel-2; harvesting accessibility; regeneration climate). " +
+      "Use only the data below (class shares per management unit, means, cumulative affected area). Say what the data cannot tell (remote sensing, needs field check). " +
+      "Never treat a missing value as zero. Be concise (under 180 words).\n\nDATA:\n" + JSON.stringify(contexte) + "\n\nQUESTION:\n" + question;
+    var bloc = $("reponse"), texte = $("reponse-texte");
+    bloc.hidden = false; texte.textContent = NV.t("reflexion");
+    $("btn-demander").disabled = true;
+    sample(consigne, { signal: demande.signal, onText: function (o) { texte.textContent = o.text; } })
+      .then(function (r) { texte.textContent = r.text; })
+      .catch(function (e) {
+        if (e && e.code === "cancelled") return;
+        if (e && e.code === "not_granted") { $("bloc-claude").hidden = true; return; }
+        texte.textContent = (e && e.text) ? e.text : NV.t("erreur_ia", { message: (e && e.message) || "" });
+      })
+      .then(function () { $("btn-demander").disabled = false; });
+  });
+
+  /* ---------------------------------------------- ensemble */
+  function tout() {
+    rendreThemes(); rendreRail(); rendreImage(); rendreFrise(); rendreLegende(); recolorerUG(); rendreClassement(); rendreFiche();
+  }
+  function majLangue() {
+    NV.traduire();
+    $("lang-fr").setAttribute("aria-pressed", String(NV.lang === "fr"));
+    $("lang-en").setAttribute("aria-pressed", String(NV.lang === "en"));
+    $("opacite-val").textContent = pourcent(opacite);
+    if (man) tout();
+  }
+  $("lang-fr").addEventListener("click", function () { NV.changerLangue("fr"); majLangue(); });
+  $("lang-en").addEventListener("click", function () { NV.changerLangue("en"); majLangue(); });
+
+  /* ---------------------------------------------- chargement */
+  $("opacite").value = String(opacite);
+  Promise.all([NV.charger("rasters.json"), NV.charger("ugs.geojson").catch(function () { return null; }),
+               NV.charger("contexte.geojson").catch(function () { return null; })])
+    .then(function (r) {
+      man = r[0];
+      if (!man || !man.couches) throw new Error("rasters.json");
+      ugsGj = r[1];
+      $("titre").textContent = man.name || man.project_id || "Projet";
+      $("bandeau-exemple").hidden = !man.exemple;
+      if (r[2]) NV.repere(carte, r[2], NV.styleContexte, "contexte");
+      var bornes = null;
+      if (ugsGj && ugsGj.features) {
+        coucheUG = L.geoJSON(ugsGj, {
+          style: function (f) { return styleUG(f.properties); },
+          onEachFeature: function (f, c) {
+            var p = f.properties;
+            couchesUG.set(p.ug_id, c); props.set(p.ug_id, p);
+            c.bindTooltip(function () {
+              var s = scoreUG(p.ug_id), cc = coucheCourante();
+              var val = s == null ? "" : "<br><span class='nv-num'>" + (cc && cc.legende.type !== "continu" ? pourcent(s) : NV.nombre(s, 2)) + "</span>";
+              return "<strong>" + E(p.label) + "</strong>" + (NV.parcellesUG(p) ? "<br><span class='nv-muet'>" + E(NV.parcellesUG(p)) + "</span>" : "") + val;
+            }, { className: "nv-infobulle", sticky: true, direction: "top", offset: [0, -6] });
+            c.on("click", function () { choisir(p.ug_id, false); });
+          }
+        }).addTo(carte);
+        bornes = coucheUG.getBounds();
+      }
+      if (!bornes || !bornes.isValid()) {
+        var c0 = man.couches[0];
+        bornes = c0 ? L.latLngBounds(c0.emprise) : L.latLngBounds([[46, 2], [47, 3]]);
+      }
+      carte.fitBounds(bornes, { padding: [24, 24] });
+      NV.motifHachures(carte);
+      var themes = (man.themes || []).map(function (t) { return t.id; });
+      var avecDonnees = themes.filter(function (t) { return couchesDuTheme(t).length + variablesDuTheme(t).length; });
+      var initial = [man.theme_initial, etat.theme].filter(function (t) { return t && themes.indexOf(t) >= 0; })[0] || avecDonnees[0] || themes[0];
+      majLangue();
+      choisirTheme(initial);
+    })
+    .catch(function (e) {
+      var a = document.createElement("p");
+      a.className = "nv-alerte";
+      a.textContent = NV.t("erreur_donnees", { message: e.message });
+      $("legende").replaceWith(a);
+      a.style.cssText = "position:absolute;z-index:900;left:12px;right:12px;bottom:22px;background:var(--nv-surface)";
+    });
+
+  NV.capacite("sample").then(function (s) { sample = s; $("bloc-claude").hidden = !s; });
+  majLangue();
+})();
+</script>

@@ -23,7 +23,7 @@ const dist = join(racine, ".apercu");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist);
 execFileSync("node", [join(racine, "outils/generer-exemples.mjs")]);
-for (const v of ["selection", "atlas", "calcul", "plan"]) {
+for (const v of ["selection", "atlas", "calcul", "plan", "rasters"]) {
   execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), v, join(racine, "clients/claude/vues/exemples", v), join(dist, v)]);
 }
 // Vue Calcul branchée sur un connecteur simulé : un vrai projet (pas un exemple).
@@ -47,7 +47,7 @@ writeFileSync(join(atlasDirect, "atlas.geojson"), JSON.stringify(atlasExemple));
 writeFileSync(join(atlasDirect, "contexte.geojson"), readFileSync(join(racine, "clients/claude/vues/exemples/atlas/contexte.geojson")));
 execFileSync("node", [join(racine, "outils/assembler-vue.mjs"), "atlas", atlasDirect, join(dist, "atlas-direct")]);
 
-const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".geojson": "application/geo+json" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".geojson": "application/geo+json", ".png": "image/png" };
 const serveur = createServer((req, res) => {
   const chemin = join(dist, decodeURIComponent(req.url.split("?")[0]).replace(/\/$/, "/index.html"));
   if (!chemin.startsWith(dist) || !existsSync(chemin)) { res.writeHead(404); return res.end(); }
@@ -601,6 +601,99 @@ await test("Plan : sombre, EN, téléphone 400 px, fiche en panneau bas", async 
   const deborde = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   assert.equal(deborde, false);
   await capture(page, "plan-mobile-sombre");
+  await ctx.close();
+});
+
+/* ------------------------------------------------------------ Rasters */
+await test("Rasters : santé, frise FORDEAD, fiche d'unité, légendes", async () => {
+  const { ctx, page } = await ouvrir("/rasters/");
+  await page.waitForSelector("#carte img.leaflet-image-layer");
+  assert.equal(await page.isVisible("#bandeau-exemple"), true);
+  assert.equal(await page.getAttribute("#themes [data-theme='sante']", "aria-selected"), "true");
+  // Deux couches santé, la première affichée ; la couche FAST manque et se signale.
+  assert.equal(await page.$$eval("#couches [data-raster]", (b) => b.length), 2);
+  assert.match(await page.textContent("#absentes"), /FAST/);
+  assert.match(await page.textContent("#titre-carte"), /FORDEAD/);
+  // L'image chargée est la dernière date de la frise.
+  let src = await page.getAttribute("#carte img.leaflet-image-layer", "src");
+  assert.match(src, /fordead_severite_20260925\.png$/);
+  await page.waitForFunction(() => { const i = document.querySelector("#carte img.leaflet-image-layer"); return i && i.complete && i.naturalWidth > 0; });
+  assert.equal(await page.isVisible("#frise"), true);
+  assert.match(await page.textContent("#legende"), /sain.*non coloré/);
+  // Frise : retour à la première date.
+  await page.$eval("#frise-curseur", (e) => { e.value = "0"; e.dispatchEvent(new Event("input")); });
+  src = await page.getAttribute("#carte img.leaflet-image-layer", "src");
+  assert.match(src, /fordead_severite_20251231\.png$/);
+  assert.match(await page.textContent("#frise-date"), /2025/);
+  // Classement puis fiche d'une unité : parts par classe et série cumulée.
+  await page.waitForSelector("#classement [data-ug]");
+  await page.locator("#classement [data-ug]").first().click();
+  assert.equal(await page.isVisible("#fiche"), true);
+  assert.match(await page.textContent("#fiche-stats"), /%/);
+  assert.equal(await page.locator("#fiche-stats svg.rs__serie rect").count(), 3);
+  await capture(page, "rasters-sante");
+  // Couche continue : dégradé et moyenne.
+  await page.click("#couches [data-raster='reconfort_score']");
+  assert.equal(await page.isVisible("#frise"), false);
+  assert.equal(await page.locator("#legende .nv-degrade").count(), 1);
+  assert.match(await page.textContent("#fiche-stats"), /Moyenne/);
+  // Opacité appliquée à l'image.
+  await page.$eval("#opacite", (e) => { e.value = "0.5"; e.dispatchEvent(new Event("input")); });
+  assert.equal(await page.$eval("#carte img.leaflet-image-layer", (i) => i.style.opacity), "0.5");
+  await ctx.close();
+});
+
+await test("Rasters : accessibilité, régénération (climat bivarié, valeurs par unité), mémoire", async () => {
+  const { ctx, page } = await ouvrir("/rasters/");
+  await page.waitForSelector("#carte img.leaflet-image-layer");
+  await page.click("#themes [data-theme='accessibilite']");
+  assert.match(await page.getAttribute("#carte img.leaflet-image-layer", "src"), /acc_skidder\.png$/);
+  assert.match(await page.textContent("#legende"), /Hors forêt.*non coloré/);
+  await page.click("#themes [data-theme='regeneration']");
+  assert.match(await page.getAttribute("#carte img.leaflet-image-layer", "src"), /climat_eobs\.png$/);
+  assert.equal(await page.locator("#legende .rs__biv span").count(), 9);
+  assert.match(await page.textContent("#legende"), /ΔT°max/);
+  // Valeur par unité : plus d'image, les unités sont colorées.
+  await page.click("#couches [data-ug-var='regen_priorite']");
+  assert.equal(await page.locator("#carte img.leaflet-image-layer").count(), 0);
+  const remplies = await page.$$eval("#carte path.leaflet-interactive", (p) => p.filter((x) => x.getAttribute("fill") && x.getAttribute("fill") !== "transparent").length);
+  assert.ok(remplies > 10);
+  await page.locator("#classement [data-ug]").first().click();
+  assert.match(await page.textContent("#fiche-stats"), /Indice de priorité/);
+  // Le thème et la couche choisis survivent au rechargement.
+  await page.reload();
+  await page.waitForSelector("#carte path.leaflet-interactive");
+  assert.equal(await page.getAttribute("#themes [data-theme='regeneration']", "aria-selected"), "true");
+  assert.equal(await page.getAttribute("#couches [data-ug-var='regen_priorite']", "aria-pressed"), "true");
+  await ctx.close();
+});
+
+await test("Rasters : Demander à Claude reçoit la couche et l'unité", async () => {
+  const simule = () => {
+    const sample = (consigne) => { window.__consigne = consigne; return Promise.resolve({ text: "Réponse simulée." }); };
+    window.claude = { use: (nom) => Promise.resolve(nom === "sample" ? sample : null) };
+  };
+  const { ctx, page } = await ouvrir("/rasters/", { claude: simule });
+  await page.waitForSelector("#bloc-claude", { state: "visible" });
+  await page.locator("#classement [data-ug]").first().click();
+  await page.fill("#question", "Faut-il aller voir sur le terrain ?");
+  await page.click("#btn-demander");
+  await page.waitForFunction(() => /Réponse simulée/.test(document.getElementById("reponse-texte").textContent));
+  const consigne = await page.evaluate(() => window.__consigne);
+  assert.match(consigne, /"id":"fordead_severite"/);
+  assert.match(consigne, /"serie":\{"dates"/);
+  await ctx.close();
+});
+
+await test("Rasters : sombre, EN, téléphone 400 px", async () => {
+  const { ctx, page } = await ouvrir("/rasters/", { theme: "dark", viewport: { width: 400, height: 860 } });
+  await page.waitForSelector("#carte img.leaflet-image-layer");
+  await page.click("#lang-en");
+  assert.equal(await page.textContent("#themes [data-theme='sante']"), "Forest health 2");
+  assert.equal(await page.textContent("#btn-lecture"), "Play");
+  const deborde = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  assert.equal(deborde, false);
+  await capture(page, "rasters-mobile-sombre");
   await ctx.close();
 });
 

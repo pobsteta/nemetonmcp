@@ -1,6 +1,6 @@
 ---
 name: nemeton-vues
-description: Créer un projet nemeton et publier ses vues interactives dans Claude (Sélection des parcelles, Calcul en cours, Atlas du projet, Plan d'actions partagé) à partir du connecteur MCP nemeton, local ou distant. À utiliser dès qu'un utilisateur parle de diagnostiquer une forêt, de créer un projet nemeton, de choisir des parcelles cadastrales, de lancer ou suivre un calcul, de voir, explorer ou partager les résultats d'un projet (familles, indicateurs, carte, radar), ou de planifier des actions sylvicoles (éclaircie, plantation, martelage Marculus).
+description: Créer un projet nemeton et publier ses vues interactives dans Claude (Sélection des parcelles, Calcul en cours, Atlas du projet, Plan d'actions partagé, Cartes du projet : santé des forêts, accessibilité, régénération) à partir du connecteur MCP nemeton, local ou distant. À utiliser dès qu'un utilisateur parle de diagnostiquer une forêt, de créer un projet nemeton, de choisir des parcelles cadastrales, de lancer ou suivre un calcul, de voir, explorer ou partager les résultats d'un projet (familles, indicateurs, carte, radar), de planifier des actions sylvicoles (éclaircie, plantation, martelage Marculus), ou de voir le dépérissement (FORDEAD, FAST, RECONFORT), l'accessibilité au débardage ou le climat de la régénération sur une carte.
 ---
 
 # Vues nemeton dans Claude
@@ -31,6 +31,7 @@ Référence : `specs/BRIEF-visualisation-nemeton-claude.md`.
 | veut voir, explorer ou partager les résultats d'un projet calculé | **Atlas** (`vues/atlas/`) | `vue_atlas`, `contexte_carto` (facultatif), `detail_indicateur` (depuis la vue) |
 | lance ou attend un calcul | **Calcul** (`vues/calcul/`) | `lancer_calcul`, `etat_calcul` (suivi depuis la vue), `annuler_calcul` |
 | veut planifier, valider ou partager des actions sylvicoles | **Plan d'actions** (`vues/plan/`) | `plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus` |
+| veut voir le dépérissement (FORDEAD, FAST, RECONFORT), l'accessibilité au débardage ou le climat de la régénération | **Cartes du projet** (`vues/rasters/`) | `vue_rasters` |
 | pose une question rapide sur un projet calculé (« où en est Couchey ? », « ses points faibles ? ») | conversation | `fiche_projet` : score, NDP, familles classées, points forts et faibles, plan résumé, état du calcul, phrase `texte` ; relue en cache tant que rien ne change. Ouvrir l'Atlas seulement si l'utilisateur veut la carte |
 | veut un rapport, un GeoPackage | conversation | `generer_rapport` (pièce officielle, PDF), `exporter_gpkg` (connecteur distant : lien `urls` ; avec `zip = true`, le GeoPackage zippé en base64, que la vue Atlas propose au téléchargement comme le CSV) |
 | veut des UGF numérotées comme les parcelles forestières ONF | conversation | `croiser_onf`, puis `lancer_calcul` (voir « UGF depuis le parcellaire ONF ») |
@@ -173,6 +174,49 @@ Dans la conversation :
 action de martelage et le `.marsync`), à télécharger par le lien `urls` ;
 le plan ne change pas. Le retour du martelage s'importe dans nemetonshiny.
 
+## Parcours « Cartes du projet » (santé, accessibilité, régénération)
+
+La vue montre les rasters que nemetonshiny a **déjà calculés** dans le projet
+(onglets Suivi sanitaire, Accessibilité, Régénération). `vue_rasters` ne
+relance aucun calcul : il les pré-rend en PNG géoréférencés.
+
+1. `vue_rasters(projet, theme)` avec `theme` = `sante` (« santé des forêts »,
+   dépérissement), `accessibilite` ou `regeneration` selon la demande. Le
+   premier appel peut prendre une minute (rendu de toutes les couches) ;
+   prévenir l'utilisateur. Les suivants relisent le cache tant que les
+   rasters n'ont pas changé.
+2. Lire `absentes` : chaque groupe manquant (`fordead`, `fast`, `reconfort`,
+   `accessibilite`, `regeneration`) porte l'onglet de nemetonshiny qui le
+   produit. Si le thème demandé n'a aucune couche, le dire et proposer
+   `url_app` plutôt que de publier une vue vide.
+3. Facultatif : `contexte_carto(projet)` pour les routes et l'hydrographie.
+4. Publier la vue Cartes avec :
+   - `rasters.json` ← `fichiers.manifeste`
+   - `ugs.geojson` ← `fichiers.ugs`
+   - **chaque image** de `fichiers.images` sous `rasters/<nom du fichier>`
+     (le manifeste les cite ainsi : `rasters/fordead_severite.png`,
+     `rasters/fordead_severite_20260630.png`…)
+   - `contexte.geojson` ← `fichier` de `contexte_carto` (si présent)
+   - Capacités : `{"sample": {}}`. La vue n'appelle pas le connecteur.
+   - Titre selon le thème : « Santé des forêts · <projet> »,
+     « Accessibilité · <projet> », « Régénération · <projet> ».
+5. Résumer ce que montrent les cartes à partir des statistiques du
+   manifeste (`par_ug` : part de surface par classe, ou moyenne ; `serie_ug` :
+   surface touchée cumulée à chaque date de la frise FORDEAD) : unités les
+   plus touchées, évolution, et rappeler que ce sont des détections par
+   satellite à confirmer sur le terrain.
+
+Contrat du manifeste : `couches[]` (`id`, `theme`, `libelle`, `source`,
+`date`, `legende` de type `classes`, `continu` ou `bivarie`, `image`,
+`emprise` `[[sud, ouest], [nord, est]]`, `par_ug`, et pour
+`fordead_severite` `frise[]` et `serie_ug`), `variables_ug[]` (valeurs de
+régénération par unité, propriétés `regen_*` de `ugs.geojson`), `absentes`,
+`theme_initial`. Une classe sans couleur (sain, hors forêt) n'est pas peinte.
+
+Dans la conversation, `vue_rasters(projet, couche, date)` rend une seule
+couche (par exemple la sévérité FORDEAD au 30 juin) ; `inclure_png = true`
+ajoute l'image en base64.
+
 ## Publier une vue
 
 Chaque vue = sa page (`vues/<vue>/index.html`) + le moteur commun
@@ -299,6 +343,7 @@ Les outils rendent `{"ok": false, "erreur", "classe", "candidats"}` :
 | `nemetonshiny_onf_echec` | `croiser_onf` : source ONF, cadastre ou DGFiP injoignable, aucune forêt publique ou aucun recoupement ; le projet n'a pas changé |
 | `nemetonshiny_idu_inconnu` | `appliquer_ugf` : le fichier cite une parcelle absente du projet ; aucune parcelle n'est créée |
 | `nemetonshiny_pavage_invalide` | `appliquer_ugf` : les tènements ne pavent pas exactement les parcelles nommées ; le projet n'a pas changé |
+| `nemetonmcp_couche_absente` | `vue_rasters` : couche inconnue ou sans frise ; `candidats` liste les couches du projet |
 | `nemetonshiny_fichier_invalide` | `appliquer_ugf` : fichier introuvable, illisible ou sans `idu` / `label_ugf` |
 
 Connecteur distant : un outil d'écriture refusé (« réservé aux rôles … ») vient

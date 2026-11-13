@@ -57,7 +57,7 @@ etape_vues() {
   [ -d node_modules/playwright ] || npm install --no-audit --no-fund
   npx playwright install chromium >/dev/null
   npm test
-  for vue in selection atlas calcul plan; do
+  for vue in selection atlas calcul plan rasters; do
     node outils/assembler-vue.mjs "$vue" "clients/claude/vues/exemples/$vue" ".apercu/$vue"
   done
 }
@@ -69,6 +69,7 @@ etape_apercu() {
   info "Atlas     : http://localhost:$port/atlas/"
   info "Calcul    : http://localhost:$port/calcul/"
   info "Plan      : http://localhost:$port/plan/"
+  info "Cartes    : http://localhost:$port/rasters/"
   info "Ctrl-C pour arrêter."
   cd "$racine/.apercu"
   if command -v python3 >/dev/null 2>&1; then
