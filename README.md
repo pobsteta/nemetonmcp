@@ -221,20 +221,29 @@ cd r && Rscript -e 'devtools::test()'
 - le connecteur R : `R CMD check` sans avertissement, tests testthat,
   couverture (covr).
 
-Quand la CI passe sur `main`, le workflow **release** publie une version :
+Quand la CI passe sur `main`, le workflow **release** publie une version
+calendaire `AAAA.M.N`, comme marculus (`vAAAA.MM.N`) : année et mois UTC du
+jour de la release, `N` compteur du mois parmi les étiquettes `v*`, qui repart
+à 1 au changement de mois (`2026.11.1`, `2026.11.2`, … `2026.11.10`, puis
+`2026.12.1`).
 
 | Étiquette de la PR | Version |
 | --- | --- |
-| aucune | correctif, `0.1.0` → `0.1.1` |
-| `version:mineure` | `0.1.0` → `0.2.0` |
-| `version:majeure` | `0.1.0` → `1.0.0` |
+| aucune (ou toute autre) | suivante du mois, `2026.11.1` → `2026.11.2` |
 | `version:aucune` | pas de version |
 
+Les étiquettes `version:mineure` et `version:majeure` n'ont plus d'effet. Le
+mois s'écrit sans zéro initial (`2027.1.1`, pas `2027.01.1`) : semver
+(`package.json`, `plugin.json`) l'interdit et R le retire de toute façon
+(`packageVersion()`). Les anciennes versions `0.*` restent ; toute version
+calendaire est plus grande (`2026.11.1` > `0.9.3` pour R comme pour semver).
+
 Il écrit la version dans les quatre fichiers, ajoute à `NEWS.md` le titre des
-PR fusionnées depuis la version précédente, pousse le commit « Version X.Y.Z »,
-pose l'étiquette `vX.Y.Z` et crée la release GitHub. Une version montée à la
-main dans la PR (`node outils/version.mjs monter mineure`) est publiée telle
-quelle. Les PR sont fusionnées en « squash » : leur titre devient la ligne de
+PR fusionnées depuis la version précédente, pousse le commit « Version
+AAAA.M.N », pose l'étiquette `vAAAA.M.N` et crée la release GitHub.
+`node outils/version.mjs suivante` affiche la prochaine version. Une version
+écrite à la main dans la PR (`node outils/version.mjs monter`) est publiée
+telle quelle. Les PR sont fusionnées en « squash » : leur titre devient la ligne de
 `NEWS.md`.
 
 ## Limites connues
