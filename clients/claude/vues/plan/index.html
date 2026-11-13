@@ -764,8 +764,8 @@
     var b = $("btn-enregistrer"); b.disabled = true; signalerFiche(t("envoi"));
     var creation = etat.nouvelle;
     var appel = creation
-      ? NV.appeler(mcp, "ajouter_action", { projet: etat.plan.projet, action: Object.assign(m, { source: { origine: "vue" } }) })
-      : NV.appeler(mcp, "modifier_action", { projet: etat.plan.projet, action_id: etat.action.id, modifications: m, attendu: etat.action.version });
+      ? NV.ecrire(mcp, "ajouter_action", { projet: etat.plan.projet, action: Object.assign(m, { source: { origine: "vue" } }) })
+      : NV.ecrire(mcp, "modifier_action", { projet: etat.plan.projet, action_id: etat.action.id, modifications: m, attendu: etat.action.version });
     appel.then(function (r) { etat.nouvelle = false; return apresEcriture(t(creation ? "ajoute" : "enregistre"), r.action); })
       .catch(erreurEcriture).then(function () { var b2 = $("btn-enregistrer"); if (b2) b2.disabled = false; });
   }
@@ -773,13 +773,13 @@
     var a = actions().filter(function (x) { return x.id === id; })[0];
     if (!a) return;
     signaler(t("envoi"));
-    NV.appeler(mcp, "modifier_action", { projet: etat.plan.projet, action_id: id, modifications: { statut: statut }, attendu: a.version })
+    NV.ecrire(mcp, "modifier_action", { projet: etat.plan.projet, action_id: id, modifications: { statut: statut }, attendu: a.version })
       .then(function (r) { return apresEcriture(t("enregistre"), etat.action && etat.action.id === id ? r.action : null); })
       .catch(function (e) { erreurEcriture(e); signaler(NV.messageMcp(e)); });
   }
   function supprimer() {
     var id = etat.action.id;
-    NV.appeler(mcp, "supprimer_action", { projet: etat.plan.projet, action_id: id })
+    NV.ecrire(mcp, "supprimer_action", { projet: etat.plan.projet, action_id: id })
       .then(function () { fermer(); return apresEcriture(t("supprime")); })
       .catch(erreurEcriture);
   }
@@ -790,7 +790,7 @@
       objectifs_lies: x.objectifs_lies, statut: "proposee", source: { origine: "claude", extrait_texte: x.justification } };
     Object.keys(action).forEach(function (k) { if (action[k] == null) delete action[k]; });
     signaler(t("envoi"));
-    NV.appeler(mcp, "ajouter_action", { projet: etat.plan.projet, action: action })
+    NV.ecrire(mcp, "ajouter_action", { projet: etat.plan.projet, action: action })
       .then(function () {
         etat.suggestions = etat.suggestions.filter(function (s) { return s.cle !== cle; });
         return apresEcriture(t("ajoute"));

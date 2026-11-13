@@ -10,10 +10,12 @@ outils_mcp()
 A list of \code{ellmer::tool()} definitions: the tools of nemetonshiny
 (\code{lister_projets}, \code{resume_projet}, \code{lancer_calcul}, \code{etat_calcul},
 \code{annuler_calcul}, \code{generer_rapport}, \code{exporter_gpkg}, \code{url_app},
-\code{appliquer_ugf}, \code{croiser_onf}) and the
-lot 1 tools (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_projet},
+\code{appliquer_ugf}, \code{croiser_onf}, with their own annotations) and those of
+nemetonmcp (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_projet},
 \code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}), \code{fiche_projet},
-the action plan tools and \code{vue_rasters} (lot 4).
+the action plan tools and \code{vue_rasters} (lot 4). A tool of nemetonmcp
+replaces the one of nemetonshiny with the same name (\code{etat_calcul},
+\code{exporter_gpkg}). Errors come back as tool errors (\code{isError}).
 }
 \description{
 MCP tools of nemetonmcp

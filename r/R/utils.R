@@ -13,20 +13,108 @@
                                 na = "null", digits = NA))
 }
 
-# Evalue `expr` ; une erreur devient une reponse `ok = false` lisible par le
-# modele (message + classe + candidats eventuels), jamais une exception de
-# protocole.
-.mcp_call <- function(expr) {
-  res <- tryCatch(expr, error = function(e) {
-    cls <- grep("^(nemetonshiny|nemetonmcp)_", class(e), value = TRUE)
-    structure(list(ok = FALSE, erreur = conditionMessage(e),
-                   classe = if (length(cls)) cls[1] else NULL,
-                   candidats = e$candidats),
-              class = "mcp_erreur")
-  })
-  if (inherits(res, "mcp_erreur")) res <- unclass(res)
-  else res <- c(list(ok = TRUE), res)
-  .json(Filter(Negate(is.null), res))
+# Evalue `expr`. Un succes rend `{"ok":true,...}`. Une erreur rend la meme
+# forme que nemetonshiny (brief du 2026-11-10, section 2) :
+# `{"ok":false,"classe","code","langue","erreur","action","candidats"}`, plus
+# les champs d'une confirmation (`projet`, `projet_nom`, `jeton`, `apercu`,
+# `expire_a`), et la chaine porte l'attribut `mcp_erreur` : `outils_mcp()` la
+# fait passer par `.mcp_vers_outil()` de nemetonshiny, qui la marque
+# `isError`. Jamais d'exception de protocole.
+.mcp_call <- function(expr, langue = "fr") {
+  res <- tryCatch(expr, error = function(e) structure(list(e), class = "mcp_echec"))
+  if (inherits(res, "mcp_echec")) return(.erreur_mcp(res[[1]], langue))
+  .json(Filter(Negate(is.null), c(list(ok = TRUE), res)))
+}
+
+# Code court d'une erreur : la classe sans son prefixe (`nemetonshiny_` ou
+# `nemetonmcp_`), alignee sur les codes de nemetonshiny quand le cas existe
+# (`projet_introuvable`, `calcul_en_cours`...). Une erreur R sans classe
+# connue : `erreur_inconnue`. Pure, testee.
+.code_erreur <- function(e) {
+  cls <- grep("^(nemetonshiny|nemetonmcp)_", class(e), value = TRUE)
+  cls <- setdiff(cls, c("nemetonshiny_erreur", "nemetonmcp_erreur"))
+  if (length(cls)) return(list(classe = cls[1], code = sub("^nemeton(shiny|mcp)_", "", cls[1])))
+  if (inherits(e, c("nemetonshiny_erreur", "nemetonmcp_erreur"))) {
+    return(list(classe = grep("_erreur$", class(e), value = TRUE)[1], code = "erreur"))
+  }
+  list(classe = "nemetonmcp_erreur_inconnue", code = "erreur_inconnue")
+}
+
+# Suite a proposer, par code : phrases propres a nemetonmcp (decision de
+# Pascal : seuls les codes s'alignent sur nemetonshiny, pas les textes). Les
+# clients decident sur `code` et lisent `action`.
+.ACTIONS_ERREUR <- list(
+  fr = c(
+    projet_introuvable = "Lister les projets (lister_projets) et v\u00e9rifier le nom avec l'utilisateur.",
+    projet_ambigu = "Proposer les candidats \u00e0 l'utilisateur et le laisser choisir.",
+    projet_verrouille = "Le projet est ouvert dans nemetonshiny : r\u00e9essayer quand il sera ferm\u00e9.",
+    projet_ancien = "Proposer de recr\u00e9er le projet avec les m\u00eames parcelles.",
+    calcul_en_cours = "Suivre etat_calcul et r\u00e9essayer quand la t\u00e2che en cours sera termin\u00e9e.",
+    sans_indicateurs = "Proposer lancer_calcul, puis suivre etat_calcul.",
+    confirmation_requise = "Montrer l'aper\u00e7u \u00e0 l'utilisateur ; s'il confirme, rappeler l'outil avec les m\u00eames arguments et le jeton.",
+    jeton_invalide = "Redemander un aper\u00e7u : rappeler l'outil sans jeton.",
+    parcelles_introuvables = "Signaler \u00e0 l'utilisateur les parcelles introuvables.",
+    commune_introuvable = "V\u00e9rifier l'orthographe avec l'utilisateur, ou demander une commune voisine.",
+    departement_introuvable = "V\u00e9rifier le d\u00e9partement avec l'utilisateur.",
+    departement_ambigu = "Proposer les candidats \u00e0 l'utilisateur et le laisser choisir.",
+    section_introuvable = "V\u00e9rifier la section cadastrale avec l'utilisateur.",
+    selection_vide = "Demander \u00e0 l'utilisateur de choisir au moins une parcelle.",
+    nom_manquant = "Demander un nom de projet \u00e0 l'utilisateur.",
+    action_invalide = "Relire le message et corriger l'action (unit\u00e9, type, ann\u00e9e).",
+    action_introuvable = "Relire le plan avec plan_actions : l'action a pu \u00eatre supprim\u00e9e.",
+    conflit = "Montrer \u00e0 l'utilisateur la version actuelle (candidats) avant de r\u00e9\u00e9crire.",
+    ug_introuvable = "V\u00e9rifier l'unit\u00e9 de gestion (ug_id ou nom).",
+    indicateur_inconnu = "V\u00e9rifier le code de l'indicateur (B1, A5...).",
+    couche_absente = "Choisir une couche parmi les candidats.",
+    marculus_vide = "Aucune action de martelage dans le plan : rien \u00e0 exporter.",
+    droits = "Op\u00e9ration r\u00e9serv\u00e9e \u00e0 un r\u00f4le d'\u00e9criture : s'adresser \u00e0 l'administrateur du realm.",
+    erreur = "Signaler l'erreur \u00e0 l'administrateur du serveur nemeton.",
+    erreur_inconnue = "Signaler l'erreur \u00e0 l'administrateur du serveur nemeton."),
+  en = c(
+    projet_introuvable = "List the projects (lister_projets) and check the name with the user.",
+    projet_ambigu = "Offer the candidates to the user and let them choose.",
+    projet_verrouille = "The project is open in nemetonshiny: try again once it is closed.",
+    projet_ancien = "Offer to recreate the project with the same parcels.",
+    calcul_en_cours = "Follow etat_calcul and try again once the running task is over.",
+    sans_indicateurs = "Offer lancer_calcul, then follow etat_calcul.",
+    confirmation_requise = "Show the preview to the user; if they confirm, call the tool again with the same arguments and the token.",
+    jeton_invalide = "Ask for a new preview: call the tool again without a token.",
+    parcelles_introuvables = "Tell the user which parcels were not found.",
+    commune_introuvable = "Check the spelling with the user, or ask for a neighbouring commune.",
+    departement_introuvable = "Check the department with the user.",
+    departement_ambigu = "Offer the candidates to the user and let them choose.",
+    section_introuvable = "Check the cadastral section with the user.",
+    selection_vide = "Ask the user to pick at least one parcel.",
+    nom_manquant = "Ask the user for a project name.",
+    action_invalide = "Read the message and correct the action (unit, type, year).",
+    action_introuvable = "Read the plan again with plan_actions: the action may have been removed.",
+    conflit = "Show the user the current version (candidats) before writing again.",
+    ug_introuvable = "Check the management unit (ug_id or name).",
+    indicateur_inconnu = "Check the indicator code (B1, A5...).",
+    couche_absente = "Pick a layer among the candidates.",
+    marculus_vide = "No marking action in the plan: nothing to export.",
+    droits = "Operation reserved to a write role: contact the realm administrator.",
+    erreur = "Report the error to the nemeton server administrator.",
+    erreur_inconnue = "Report the error to the nemeton server administrator.")
+)
+
+.action_erreur <- function(code, langue = "fr") {
+  t <- .ACTIONS_ERREUR[[if (identical(langue, "en")) "en" else "fr"]]
+  unname(if (code %in% names(t)) t[[code]] else t[["erreur"]])
+}
+
+# Chaine JSON d'erreur, marquee `mcp_erreur`. Pure, testee.
+.erreur_mcp <- function(e, langue = "fr") {
+  langue <- if (identical(langue, "en")) "en" else "fr"
+  ce <- .code_erreur(e)
+  texte <- gsub("\\s*\n\\s*", " ", trimws(cli::ansi_strip(conditionMessage(e))))
+  x <- Filter(Negate(is.null), list(
+    ok = FALSE, classe = ce$classe, code = ce$code, langue = langue,
+    erreur = texte, action = .action_erreur(ce$code, langue),
+    candidats = e$candidats,
+    projet = if (!is.null(e$projet_nom) || !is.null(e$jeton)) e$projet,
+    projet_nom = e$projet_nom, jeton = e$jeton, apercu = e$apercu, expire_a = e$expire_a))
+  structure(.json(x), mcp_erreur = TRUE)
 }
 
 # Variable d'environnement `NEMETON_MCP_<nom>`. Faute de quoi, l'ancienne

@@ -4,7 +4,7 @@
 \alias{ajouter_action}
 \title{Add an action to a project's plan}
 \usage{
-ajouter_action(projet, action)
+ajouter_action(projet, action, jeton = NULL)
 }
 \arguments{
 \item{projet}{Project id or name.}
@@ -14,10 +14,14 @@ ajouter_action(projet, action)
 optionally \code{statut} (default \code{proposee}), \code{intensite}, \code{duree},
 \code{objectifs_lies}, \code{quantite}, \code{commentaire}, \code{source}
 (\code{{origine: "claude"}} for a suggestion by Claude).}
+
+\item{jeton}{Confirmation token of the first call.}
 }
 \value{
 JSON: the action as stored.
 }
 \description{
-Add an action to a project's plan
+Two steps (confirmation token): without \code{jeton}, nothing is written and
+the error \code{confirmation_requise} carries a preview and a token; the same
+call with the token writes.
 }

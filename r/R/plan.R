@@ -18,15 +18,30 @@
 # local (stdio), le proprietaire du serveur ecrit.
 .peut_ecrire <- function() isTRUE(getOption("nemetonmcp.peut_ecrire", TRUE))
 
-# Un plan ne s'ecrit pas pendant que l'application edite le projet : elle le
-# garde en memoire et ecraserait la modification a sa prochaine sauvegarde.
-.refuser_si_verrouille <- function(id) {
-  verrou <- tryCatch(.ns("lock_status")(id), error = function(e) NULL)
-  if (!is.null(verrou) && !isTRUE(verrou$stale)) {
-    detenteur <- verrou$holder_label %||% verrou$holder_id %||% "?"
-    .abort("Projet en cours d'\u00e9dition dans l'application ({detenteur}) : r\u00e9essayez quand il sera ferm\u00e9.",
-           "nemetonshiny_projet_verrouille")
+# Ecriture d'un projet existant en deux temps (jeton de confirmation, ADR
+# 0002 de nemetonshiny ; brief du 2026-11-10, section 4). Sans jeton : la
+# garde de nemetonshiny (calcul en cours, verrou d'edition, projet ancien),
+# puis emission d'un jeton qui leve `confirmation_requise` avec l'apercu ;
+# rien n'est ecrit. Avec jeton : `.mcp_jeton_consommer()` rejoue lui-meme la
+# garde (avant de consommer : un refus laisse le jeton valable), puis verifie
+# que `lien` n'a pas change depuis l'apercu. Ne pas appeler la garde avant
+# lui. `lien` : ce que la confirmation doit retrouver a l'identique.
+.confirmer_ecriture <- function(outil, id, jeton, lien, apercu) {
+  if (is.null(jeton) || !nzchar(jeton)) {
+    .ns(".mcp_garde_ecriture")(id)
+    .ns(".mcp_jeton_emettre")(outil, id, lien, apercu)
   }
+  .ns(".mcp_jeton_consommer")(jeton, outil, id, lien)
+}
+
+# Apercu d'une action pour la confirmation : ce que l'utilisateur doit voir.
+.apercu_action <- function(operation, a, annee_base, ug_labels = NULL) {
+  ug <- as.character(a$ug_id %||% "")
+  Filter(Negate(is.null), list(
+    operation = operation, action_id = a$id,
+    ug = if (!is.null(ug_labels) && ug %in% names(ug_labels)) ug_labels[[ug]] else a$ug_id,
+    type = a$type, annee = if (!is.null(a$annee_cible)) as.integer(annee_base) + as.integer(a$annee_cible),
+    statut = a$statut, priorite = a$priorite))
 }
 
 .ug_ids_projet <- function(id) {
@@ -88,7 +103,7 @@
 #' @export
 plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300,
                          inclure_geojson = FALSE) {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     id <- .resoudre_projet(projet)
     plan <- .ns("load_action_plan")(id)
     if (is.null(plan)) .abort("Projet {.val {id}} introuvable.", "nemetonshiny_projet_introuvable")
@@ -199,7 +214,17 @@ plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300
                class = c("nemetonmcp_action_invalide", "nemetonmcp_erreur"))
 }
 
+# Libelles des UG, pour l'apercu d'une confirmation.
+.labels_ug <- function(u) {
+  if (is.null(u) || !"label" %in% names(u$ug)) return(NULL)
+  stats::setNames(as.character(u$ug$label), u$ids)
+}
+
 #' Add an action to a project's plan
+#'
+#' Two steps (confirmation token): without `jeton`, nothing is written and
+#' the error `confirmation_requise` carries a preview and a token; the same
+#' call with the token writes.
 #'
 #' @param projet Project id or name.
 #' @param action Object: `ug_id`, `type` (`type_libre` when `autre`),
@@ -207,20 +232,28 @@ plan_actions <- function(projet, langue = "fr", geojson = TRUE, historique = 300
 #'   optionally `statut` (default `proposee`), `intensite`, `duree`,
 #'   `objectifs_lies`, `quantite`, `commentaire`, `source`
 #'   (`{origine: "claude"}` for a suggestion by Claude).
+#' @param jeton Confirmation token of the first call.
 #' @return JSON: the action as stored.
 #' @export
-ajouter_action <- function(projet, action) {
+ajouter_action <- function(projet, action, jeton = NULL) {
   .mcp_call({
     .exiger_ecriture()
     id <- .resoudre_projet(projet)
-    .refuser_si_verrouille(id)
     plan <- .ns("load_action_plan")(id)
     base <- .ns("action_plan_annee_base")(plan)
     a <- .normaliser_action(action, base)
     a$statut <- a$statut %||% "proposee"
-    ug <- .ug_ids_projet(id)$ids
+    u <- .ug_ids_projet(id)
+    # Controles metier avant le jeton : une action refusee ne coute pas
+    # d'aller-retour de confirmation.
+    tryCatch(.ns("add_action_to_plan")(plan, a, ug_ids = u$ids, user = .utilisateur_courant()),
+             error = .erreur_validation)
+    .confirmer_ecriture("ajouter_action", id, jeton, lien = list(action = a),
+                        apercu = .apercu_action("ajout", a, base, .labels_ug(u)))
+    # Confirme : relu du disque juste avant d'ecrire.
+    plan <- .ns("load_action_plan")(id)
     avant <- length(plan$actions)
-    plan <- tryCatch(.ns("add_action_to_plan")(plan, a, ug_ids = ug, user = .utilisateur_courant()),
+    plan <- tryCatch(.ns("add_action_to_plan")(plan, a, ug_ids = u$ids, user = .utilisateur_courant()),
                      error = .erreur_validation)
     .ecrire_plan(id, plan)
     # Relu du disque : la version doit etre celle que lira plan_actions().
@@ -231,37 +264,39 @@ ajouter_action <- function(projet, action) {
 
 #' Change fields of an action
 #'
+#' Two steps (confirmation token), as [ajouter_action()].
+#'
 #' @param projet Project id or name.
 #' @param action_id Action id.
 #' @param modifications Object of the fields to change (same names as in
 #'   [ajouter_action()]); `annee` is a calendar year.
 #' @param attendu Optional `version` of the action as the caller last read
 #'   it (field of [plan_actions()] actions): when the action changed since,
-#'   nothing is written and the error `nemetonmcp_conflit` carries the
-#'   current action.
+#'   nothing is written and the error `conflit` carries the current action.
+#' @param jeton Confirmation token of the first call.
 #' @return JSON: the action as stored.
 #' @export
-modifier_action <- function(projet, action_id, modifications, attendu = NULL) {
+modifier_action <- function(projet, action_id, modifications, attendu = NULL, jeton = NULL) {
   .mcp_call({
     .exiger_ecriture()
     id <- .resoudre_projet(projet)
-    .refuser_si_verrouille(id)
     plan <- .ns("load_action_plan")(id)
     base <- .ns("action_plan_annee_base")(plan)
-    actuelle <- .ns("get_action_by_id")(plan, action_id)
-    if (is.null(actuelle)) {
-      .abort("Action {.val {action_id}} introuvable : elle a peut-\u00eatre \u00e9t\u00e9 supprim\u00e9e.", "nemetonmcp_action_introuvable")
-    }
-    if (!is.null(attendu) && nzchar(attendu) && !identical(attendu, .version_action(actuelle))) {
-      rlang::abort(sprintf("L'action a \u00e9t\u00e9 modifi\u00e9e par %s pendant votre saisie.",
-                           actuelle$modifie_par %||% actuelle$cree_par %||% "un autre compte"),
-                   class = c("nemetonmcp_conflit", "nemetonmcp_erreur"),
-                   candidats = list(.action_pour_vue(actuelle, base)))
-    }
+    actuelle <- .action_existante(plan, action_id)
+    .verifier_version(actuelle, attendu, base)
     m <- .normaliser_action(modifications, base)
     if (!length(m)) .abort("Aucune modification.", "nemetonmcp_action_invalide")
-    ug <- .ug_ids_projet(id)$ids
-    plan <- tryCatch(.ns("update_action_in_plan")(plan, action_id, m, ug_ids = ug, user = .utilisateur_courant()),
+    u <- .ug_ids_projet(id)
+    tryCatch(.ns("update_action_in_plan")(plan, action_id, m, ug_ids = u$ids, user = .utilisateur_courant()),
+             error = .erreur_validation)
+    # La version de l'action fait partie du lien : modifiee par quelqu'un
+    # entre l'apercu et la confirmation, le jeton est refuse.
+    .confirmer_ecriture("modifier_action", id, jeton,
+                        lien = list(action_id = action_id, version = .version_action(actuelle), modifications = m),
+                        apercu = c(.apercu_action("modification", actuelle, base, .labels_ug(u)),
+                                   list(modifications = m)))
+    plan <- .ns("load_action_plan")(id)
+    plan <- tryCatch(.ns("update_action_in_plan")(plan, action_id, m, ug_ids = u$ids, user = .utilisateur_courant()),
                      error = .erreur_validation)
     .ecrire_plan(id, plan)
     list(projet = id, action = .action_pour_vue(.relire_action(id, action_id), base))
@@ -270,25 +305,47 @@ modifier_action <- function(projet, action_id, modifications, attendu = NULL) {
 
 #' Remove an action from a project's plan
 #'
-#' The removal stays in the plan's history.
+#' The removal stays in the plan's history. Two steps (confirmation token),
+#' as [ajouter_action()].
 #'
 #' @param projet Project id or name.
 #' @param action_id Action id.
+#' @param jeton Confirmation token of the first call.
 #' @return JSON: `projet`, `action_id`.
 #' @export
-supprimer_action <- function(projet, action_id) {
+supprimer_action <- function(projet, action_id, jeton = NULL) {
   .mcp_call({
     .exiger_ecriture()
     id <- .resoudre_projet(projet)
-    .refuser_si_verrouille(id)
     plan <- .ns("load_action_plan")(id)
-    if (is.na(.ns("find_action_index")(plan, action_id))) {
-      .abort("Action {.val {action_id}} introuvable.", "nemetonmcp_action_introuvable")
-    }
+    base <- .ns("action_plan_annee_base")(plan)
+    actuelle <- .action_existante(plan, action_id)
+    .confirmer_ecriture("supprimer_action", id, jeton,
+                        lien = list(action_id = action_id, version = .version_action(actuelle)),
+                        apercu = .apercu_action("suppression", actuelle, base, .labels_ug(.ug_ids_projet(id))))
+    plan <- .ns("load_action_plan")(id)
     plan <- .ns("delete_action_from_plan")(plan, action_id, user = .utilisateur_courant())
     .ecrire_plan(id, plan)
     list(projet = id, action_id = action_id)
   })
+}
+
+.action_existante <- function(plan, action_id) {
+  a <- .ns("get_action_by_id")(plan, action_id)
+  if (is.null(a)) {
+    .abort("Action {.val {action_id}} introuvable : elle a peut-\u00eatre \u00e9t\u00e9 supprim\u00e9e.",
+           "nemetonmcp_action_introuvable")
+  }
+  a
+}
+
+.verifier_version <- function(actuelle, attendu, base) {
+  if (!is.null(attendu) && nzchar(attendu) && !identical(attendu, .version_action(actuelle))) {
+    rlang::abort(sprintf("L'action a \u00e9t\u00e9 modifi\u00e9e par %s pendant votre saisie.",
+                         actuelle$modifie_par %||% actuelle$cree_par %||% "un autre compte"),
+                 class = c("nemetonmcp_conflit", "nemetonmcp_erreur"),
+                 candidats = list(.action_pour_vue(actuelle, base)))
+  }
 }
 
 # ---------------------------------------------------------------- profils, Marculus
@@ -303,7 +360,7 @@ supprimer_action <- function(projet, action_id) {
 #' @return JSON: `profils`, a list of `cle`, `libelle`, `consigne`.
 #' @export
 profils_experts <- function(langue = "fr") {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     langue <- if (identical(langue, "en")) "en" else "fr"
     profils <- .ns("get_expert_profiles")()
     list(profils = unname(lapply(names(profils), function(k) {

@@ -1,15 +1,39 @@
-# Declaration des outils MCP : les 10 outils de nemetonshiny, inchanges, plus
-# ceux du lot 1. On etend le serveur existant au lieu d'en ecrire un autre.
+# Declaration des outils MCP : les 10 outils de nemetonshiny, plus les
+# notres. On etend le serveur existant au lieu d'en ecrire un autre.
 
-.lecture_seule <- function() {
-  ann <- tryCatch(utils::getFromNamespace("tool_annotations", "ellmer"), error = function(e) NULL)
-  if (is.null(ann)) NULL else ann(read_only_hint = TRUE)
+# Resultat d'un outil : une chaine d'erreur (attribut `mcp_erreur`, voir
+# .mcp_call()) devient un resultat en erreur (`isError`) par la fonction du
+# contrat de nemetonshiny ; un succes passe tel quel.
+.vers_outil <- function(x) .ns(".mcp_vers_outil")(x)
+
+# Enveloppe `f` (meme signature, pour ellmer::tool) : son resultat passe par
+# .vers_outil(). Equivalent de `.mcp_marquer` de nemetonshiny, hors contrat.
+.marquer <- function(f) {
+  noms <- names(formals(f))
+  g <- f
+  body(g) <- call(".vers_outil", as.call(c(list(quote(.f)), stats::setNames(lapply(noms, as.name), noms))))
+  environment(g) <- list2env(list(.f = f), parent = environment(f))
+  g
 }
 
-.outil <- function(fun, name, description, arguments, lecture = FALSE) {
-  args <- list(fun, name = name, description = description, arguments = arguments)
-  if (lecture && !is.null(a <- .lecture_seule())) args$annotations <- a
-  do.call(ellmer::tool, args)
+# Annotations MCP completes, comme celles de nemetonshiny : lecture seule,
+# destructif (modifie un projet existant), idempotent.
+.outil <- function(fun, name, description, arguments, lecture = FALSE,
+                   destructif = FALSE, idempotent = TRUE) {
+  ellmer::tool(.marquer(fun), name = name, description = description, arguments = arguments,
+               annotations = ellmer::tool_annotations(read_only_hint = lecture,
+                                                      destructive_hint = destructif,
+                                                      idempotent_hint = idempotent))
+}
+
+# Noms des outils. Pure, testee.
+.noms_outils <- function(outils) vapply(outils, function(o) o@name, "")
+
+# Les outils de nemetonshiny, sauf ceux que nemetonmcp remplace (meme nom) :
+# dedoublonnage par nom, le notre l'emporte, plutot qu'une liste a la main
+# qui casserait en silence le jour ou nemetonshiny ajoute un homonyme.
+.fusionner_outils <- function(existants, nouveaux) {
+  c(Filter(function(o) !o@name %in% .noms_outils(nouveaux), existants), nouveaux)
 }
 
 #' MCP tools of nemetonmcp
@@ -17,10 +41,12 @@
 #' @return A list of `ellmer::tool()` definitions: the tools of nemetonshiny
 #'   (`lister_projets`, `resume_projet`, `lancer_calcul`, `etat_calcul`,
 #'   `annuler_calcul`, `generer_rapport`, `exporter_gpkg`, `url_app`,
-#'   `appliquer_ugf`, `croiser_onf`) and the
-#'   lot 1 tools (`chercher_commune`, `parcelles_commune`, `creer_projet`,
+#'   `appliquer_ugf`, `croiser_onf`, with their own annotations) and those of
+#'   nemetonmcp (`chercher_commune`, `parcelles_commune`, `creer_projet`,
 #'   `vue_atlas`, `contexte_carto`, `detail_indicateur`), `fiche_projet`,
-#'   the action plan tools and `vue_rasters` (lot 4).
+#'   the action plan tools and `vue_rasters` (lot 4). A tool of nemetonmcp
+#'   replaces the one of nemetonshiny with the same name (`etat_calcul`,
+#'   `exporter_gpkg`). Errors come back as tool errors (`isError`).
 #' @export
 outils_mcp <- function() {
   t <- ellmer::type_string
@@ -28,23 +54,12 @@ outils_mcp <- function() {
   num <- ellmer::type_number
   projet_arg <- t("Project id, or its name (case and accents ignored).")
   langue_arg <- t("'fr' or 'en' (default 'fr').", required = FALSE)
+  jeton_arg <- t("Confirmation token. Omit it first: the call writes nothing and returns the error confirmation_requise with a preview and a token. Read the preview to the user; only if they confirm, call again with the same arguments and this token (single use, 10 minutes).", required = FALSE)
 
-  # Outils de lecture de nemetonshiny annotes « lecture seule » : la vue
-  # Calcul peut suivre etat_calcul (watchTool) sans confirmation a chaque
-  # interrogation dans l'application Claude.
-  # etat_calcul est remplace par etat_calcul_vue (memes entrees, durees en
-  # plus), declare plus bas.
-  existants <- lapply(.ns("mcp_tools")(), function(o) {
-    a <- .lecture_seule()
-    if (o@name %in% c("lister_projets", "resume_projet", "url_app") && !is.null(a)) {
-      o@annotations <- a
-    }
-    o
-  })
-  existants <- Filter(function(o) !o@name %in% c("etat_calcul", "exporter_gpkg"), existants)
+  existants <- .ns("mcp_tools")()
   nouveaux <- list(
     .outil(etat_calcul_vue, "etat_calcul",
-      "State of a project's background computation: status (lancement, en_cours, termine, echec, annule, aucun), progress, indicators done and total, current task, elapsed seconds (ecoule_s, computed by the server), error and log tail on failure.",
+      "State of a project's background job (one at a time per project): type (calcul = indicator computation started by lancer_calcul, rapport = PDF report started by generer_rapport, onf = ONF crossing started by the second call of croiser_onf), job_id, status (en_cours, termine, echec, annule, aucun), progress, indicators done and total, current task, elapsed seconds (ecoule_s, computed by the server). When termine: the job's result at the first level (fichier, the report path, for rapport; n_ugf, n_tenements, n_parcelles, n_cad, ecartees, ecart_median_m, indicateurs_perimes for onf). When echec: ok = false with the classified error fields (classe, code, erreur, action) next to the status and the log tail; the tool itself succeeded.",
       list(projet = projet_arg),
       lecture = TRUE),
     .outil(exporter_gpkg_vue, "exporter_gpkg",
@@ -70,7 +85,8 @@ outils_mcp <- function() {
       list(nom = t("Project name."),
            insee = t("INSEE code of the commune (insee_cadastre)."),
            parcelles = ellmer::type_array(t("Parcel id (IDU, 14 characters)."), description = "Parcel ids (IDU)."),
-           description = t("Optional description.", required = FALSE))),
+           description = t("Optional description.", required = FALSE)),
+      idempotent = FALSE),
     .outil(vue_atlas, "vue_atlas",
       "Data of the Atlas view of a computed project: GeoJSON file (one feature per management unit, 12 famille_* indices, indicateur_*_norm scores, .<code>_status) with a 'nemeton' header (project, global score, NDP, confidence, family catalogue). Join the file to the artifact as atlas.geojson.",
       list(projet = projet_arg, langue = langue_arg,
@@ -113,17 +129,21 @@ outils_mcp <- function() {
            inclure_geojson = b("Also return the GeoJSON inline when under 2 MB (default false).", required = FALSE)),
       lecture = TRUE),
     .outil(ajouter_action, "ajouter_action",
-      "Add an action to a project's plan. Default status 'proposee': a suggestion by Claude must carry source = {origine: 'claude'} and stay 'proposee' until a person validates it. Unknown unit, type or out-of-horizon year: error nemetonmcp_action_invalide.",
-      list(projet = projet_arg, action = .type_action(required = TRUE))),
+      "Add an action to a project's plan. Default status 'proposee': a suggestion by Claude must carry source = {origine: 'claude'} and stay 'proposee' until a person validates it. Unknown unit, type or out-of-horizon year: error action_invalide. Two steps: the first call writes nothing and returns the error confirmation_requise with a preview and a token; the write needs the same arguments and the token.",
+      list(projet = projet_arg, action = .type_action(required = TRUE), jeton = jeton_arg),
+      destructif = TRUE, idempotent = FALSE),
     .outil(modifier_action, "modifier_action",
-      "Change fields of one action (status, year, priority, quantities, comment...). Pass attendu = the action's version as last read (plan_actions): if someone changed it since, nothing is written and the error nemetonmcp_conflit carries the current action.",
+      "Change fields of one action (status, year, priority, quantities, comment...). Pass attendu = the action's version as last read (plan_actions): if someone changed it since, nothing is written and the error conflit carries the current action. Two steps: the first call writes nothing and returns the error confirmation_requise with a preview and a token; the write needs the same arguments and the token.",
       list(projet = projet_arg,
            action_id = t("Action id (act_...)."),
            modifications = .type_action(required = TRUE),
-           attendu = t("version of the action as last read (plan_actions).", required = FALSE))),
+           attendu = t("version of the action as last read (plan_actions).", required = FALSE),
+           jeton = jeton_arg),
+      destructif = TRUE),
     .outil(supprimer_action, "supprimer_action",
-      "Remove one action from a project's plan (kept in the plan's history). Prefer status 'abandonnee' to keep a trace on the board.",
-      list(projet = projet_arg, action_id = t("Action id (act_...)."))),
+      "Remove one action from a project's plan (kept in the plan's history). Prefer status 'abandonnee' to keep a trace on the board. Two steps: the first call writes nothing and returns the error confirmation_requise with a preview and a token; the removal needs the same arguments and the token.",
+      list(projet = projet_arg, action_id = t("Action id (act_...)."), jeton = jeton_arg),
+      destructif = TRUE),
     .outil(profils_experts, "profils_experts",
       "Expert profiles (forest manager, local elected official, owner, naturalist...): key, label and the instructions that set the point of view of an answer.",
       list(langue = langue_arg),
@@ -132,7 +152,7 @@ outils_mcp <- function() {
       "Write the Marculus field bundle of a project (zip: one GeoPackage per marking action - thinning, clear-cut, respacing, observation - and the .marsync of their contexts) into its exports folder. The plan is not changed.",
       list(projet = projet_arg))
   )
-  c(existants, nouveaux)
+  .fusionner_outils(existants, nouveaux)
 }
 
 # Schema d'une action du plan, pour ajouter_action et modifier_action : tous
@@ -173,7 +193,23 @@ serveur_mcp <- function() {
   if (!requireNamespace("mcptools", quietly = TRUE)) {
     stop("Le paquet 'mcptools' est requis : install.packages(\"mcptools\").", call. = FALSE)
   }
+  .environnement_serveur()
   mcptools::mcp_server(tools = outils_mcp(), session_tools = FALSE)
+}
+
+# Fuseau et locale du serveur (decision de Pascal, 2026-11-10) : les dates de
+# nemetonshiny (resume_projet...) se lisent en heure de Paris, et le
+# rapprochement des noms dictes suppose une locale UTF-8. Le serveur est lance
+# par serveur_mcp() ou serveur_mcp_distant(), pas par le server.R de
+# nemetonshiny qui les pose aussi : on les force ici.
+.environnement_serveur <- function() {
+  Sys.setenv(TZ = "Europe/Paris")
+  if (!isTRUE(l10n_info()[["UTF-8"]])) {
+    for (loc in c("C.UTF-8", "en_US.UTF-8")) {
+      if (nzchar(suppressWarnings(Sys.setlocale("LC_ALL", loc)))) break
+    }
+  }
+  invisible(c(TZ = Sys.getenv("TZ"), locale = Sys.getlocale("LC_CTYPE")))
 }
 
 #' State of a project's computation, for the Calcul view
@@ -184,13 +220,24 @@ serveur_mcp <- function() {
 #' server computes the duration.
 #'
 #' @param projet Project id or name.
-#' @return JSON, as nemetonshiny's `etat_calcul`.
+#' @return JSON, as nemetonshiny's `etat_calcul` (also for a failed job,
+#'   `ok = false` with `statut = "echec"`), plus the durations. A tool error
+#'   (unknown project...) comes back unchanged, marked as an error.
 #' @export
 etat_calcul_vue <- function(projet) {
-  texte <- .ns("mcp_etat_calcul")(projet)
+  .etat_avec_durees(.ns("mcp_etat_calcul")(projet))
+}
+
+# Deux cas d'`ok = false` a ne pas confondre (brief nemetonshiny du
+# 2026-11-13, section 3) : une erreur de l'OUTIL (projet introuvable...),
+# marquee `mcp_erreur`, rendue telle quelle pour devenir `isError` ; un JOB en
+# echec (`statut = "echec"`), non marque : l'outil a reussi, on garde ses
+# durees. Pure, testee.
+.etat_avec_durees <- function(texte, maintenant = Sys.time()) {
+  if (isTRUE(attr(texte, "mcp_erreur"))) return(texte)
   x <- tryCatch(jsonlite::fromJSON(texte, simplifyVector = FALSE), error = function(e) NULL)
-  if (!isTRUE(x$ok)) return(texte)
-  .json(c(x, .durees_calcul(x)))
+  if (!is.list(x) || (!isTRUE(x$ok) && !identical(x$statut, "echec"))) return(texte)
+  .json(c(x, .durees_calcul(x, maintenant)))
 }
 
 # exporter_gpkg de nemetonshiny, plus le GeoPackage zippe en base64 a la
