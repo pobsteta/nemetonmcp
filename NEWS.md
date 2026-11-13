@@ -1,3 +1,7 @@
+# nemetonmcp 0.9.4 (2026-11-13)
+
+- Fige Remotes: sur nemetonshiny v2026.10.18 (#25)
+
 # nemetonmcp 0.9.3 (2026-11-13)
 
 - Cartes : contexte grisé hors des unités de gestion (#24)
