@@ -1,3 +1,7 @@
+# nemetonmcp 0.9.3 (2026-11-13)
+
+- Cartes : contexte grisé hors des unités de gestion (#24)
+
 # nemetonmcp 0.9.2 (2026-11-13)
 
 - Cartes : coupes rases (sol nu FORDEAD) en blanc pur (#23)
