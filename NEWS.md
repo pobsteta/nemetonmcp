@@ -1,3 +1,8 @@
+# nemetonmcp 0.9.0 (2026-11-13)
+
+- Lot 4 : rasters pré-rendus et vue Cartes du projet (#21)
+- Atlas : les notes _norm viennent de nemetonshiny, le complément reste en filet (#20)
+
 # nemetonmcp 0.8.2 (2026-10-24)
 
 - Ajoute l'outil fiche_projet (fiche en cache et bloc display_report) (#19)
