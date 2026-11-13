@@ -312,7 +312,7 @@ const foyer = (i, j, rayon) => {
   const d = Math.hypot(i - 19, (j - 6) * 1.3);
   return d < rayon * 0.4 ? 3 : d < rayon * 0.7 ? 2 : d < rayon ? 1 : 0;
 };
-const COUL_SEV = ["#2CA02C", "#FFD27F", "#FF9933", "#D62728", "#222222"];
+const COUL_SEV = ["#2CA02C", "#FFD27F", "#FF9933", "#D62728", "#FFFFFF"];
 const RAMPE_SCORE = ["#006837", "#1a9850", "#66bd63", "#a6d96a", "#d9ef8b", "#fee08b", "#fdae61", "#f46d43", "#d73027"];
 const BIV = ["#e8e8e8", "#e4acac", "#c85a5a", "#b0d5df", "#ad9ea5", "#985356", "#64acbe", "#627f8c", "#574249"];
 const rampe = (stops, t) => stops[Math.max(0, Math.min(stops.length - 1, Math.round(t * (stops.length - 1))))];
@@ -360,7 +360,7 @@ const couches = [
     legende: { type: "classes", classes: [
       { valeur: 0, libelle: "sain" }, { valeur: 1, libelle: "faible", couleur: COUL_SEV[1] },
       { valeur: 2, libelle: "moyenne", couleur: COUL_SEV[2] }, { valeur: 3, libelle: "forte", couleur: COUL_SEV[3] },
-      { valeur: 4, libelle: "sol nu", couleur: COUL_SEV[4] }] },
+      { valeur: 4, libelle: "sol nu (coupe rase)", couleur: COUL_SEV[4] }] },
     image: ecrireImage("fordead_severite", valeurs.fordead_severite, couleur.fordead_severite),
     emprise, largeur: LARG, hauteur: HAUT,
     par_ug: statsClasses(valeurs.fordead_severite),
