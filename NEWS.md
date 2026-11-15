@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.4 (2026-11-15)
+
+- Journal des durées : une ligne JSON par appel d'outil MCP (#29)
+
 # nemetonmcp 2026.11.3 (2026-11-15)
 
 - Fiche : UGF comptées sans les scores, scores « à recalculer » quand les indicateurs sont périmés (#28)
