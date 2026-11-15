@@ -81,10 +81,10 @@ Trois modes : **Conversation** (outil MCP + texte), **Vue** (vue interactive),
 | Sélection commune / parcelles | Vue Sélection | `chercher_commune`, `parcelles_commune`, `creer_projet` | oui |
 | UGF | Conversation puis Atelier | `appliquer_ugf`, `croiser_onf` | oui |
 | Plan d'action | Vue Plan | `plan_actions`, `ajouter_action`, `modifier_action` | oui |
-| Suivi sanitaire | Conversation (alertes), Atelier (cartes pixel) | `alertes_sanitaires` | non |
-| Régénération | Conversation | `regen_essences` | non |
+| Suivi sanitaire | Conversation (alertes), Atelier (cartes pixel) | `alertes_sanitaires` | oui (#30, 15/11/2026) |
+| Régénération | Conversation | `regen_essences` | oui (#31, 15/11/2026) |
 | Terrain (échantillonnage, import, vidéo, desserte) | Atelier | `url_app` | lien oui |
-| Connaissances (RAG) | Conversation | `chercher_connaissances` | non |
+| Connaissances (RAG) | Conversation | `chercher_connaissances` | oui (#32, 15/11/2026) |
 
 ## Architecture
 
@@ -325,7 +325,8 @@ marketplace renommée, plugin réinstallé.
    part ; il reviendra avec la mise en service du VPS (étape 4).
 3. **Fiche et voie rapide** : outil `fiche_projet` tiré de l'en-tête de
    l'Atlas, avec un bloc `display_report` (fait, en cache dans `fiche.json`) ; `nemeton_fiche` et accusé vocal
-   dans VICTOR ; journal des durées.
+   dans VICTOR ; journal des durées (fait côté nemetonmcp, #29 : `outils.jsonl`,
+   `journal_outils()`).
 4. **Mise en service du VPS** : compose de production, migration des projets,
    droits par projet, contrôle d'accès aux fichiers statiques, sauvegardes,
    ADR.
