@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.3 (2026-11-15)
+
+- Fiche : UGF comptées sans les scores, scores « à recalculer » quand les indicateurs sont périmés (#28)
+
 # nemetonmcp 2026.11.2 (2026-11-15)
 
 - Adaptation à nemetonshiny 2026.11 : erreurs isError, jeton, outils longs (#27)
