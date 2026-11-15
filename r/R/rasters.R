@@ -468,11 +468,42 @@
   stats::setNames(out, ids)
 }
 
+# UGF d'un projet (sf, une ligne par UGF : ug_id, label, cadastral_refs) sans
+# charger les indicateurs, ou NULL. Lit les fichiers d'UGF du projet
+# (data/tenements.gpkg, data/ugs.json) sans rien ecrire, puis ug_build_sf()
+# (quelques secondes : unions de geometries), garde en memoire tant que ces
+# deux fichiers ne changent pas.
+.ug_sf_leger <- function(id, chemin = .ns("get_project_path")(id)) {
+  tryCatch({
+    d <- file.path(chemin, "data")
+    fichiers <- file.path(d, c("tenements.gpkg", "ugs.json"))
+    if (!all(file.exists(fichiers))) return(NULL)
+    cle <- paste("ugf", id, .cle_fichiers(fichiers), sep = "|")
+    if (!is.null(.cache_lecture[[cle]])) return(.cache_lecture[[cle]])
+    ugs <- jsonlite::read_json(file.path(d, "ugs.json"), simplifyVector = TRUE)
+    if (!is.data.frame(ugs)) ugs <- as.data.frame(ugs, stringsAsFactors = FALSE)
+    p <- list(id = id, path = chemin, parcels = .ns("load_parcels")(id),
+              tenements = sf::st_read(file.path(d, "tenements.gpkg"), quiet = TRUE), ugs = ugs)
+    if (!nrow(p$tenements) || !nrow(p$ugs)) return(NULL)
+    g <- .ns("ug_build_sf")(p)
+    if (!inherits(g, "sf") || !nrow(g)) return(NULL)
+    for (k in grep(paste0("^ugf\\|", id, "\\|"), ls(.cache_lecture), value = TRUE)) rm(list = k, envir = .cache_lecture)
+    .cache_lecture[[cle]] <- g
+    g
+  }, error = function(e) NULL)
+}
+
 # Unites de gestion du projet, en WGS84 simplifie, avec les variables de la
 # regeneration (sensibilite.gpkg de nemetonshiny) quand elles existent.
 .ugs_rasters <- function(id, chemin, langue) {
-  lu <- tryCatch(.lire_projet(id, langue), error = function(e) NULL)
-  g <- lu$familles %||% lu$indicateurs
+  # Les UGF lues directement (parcelles + tenements.gpkg + ugs.json) : pas
+  # besoin de projet_lire(), qui reconstruit tout le projet (une quinzaine de
+  # secondes sur Couchey), et juste aussi quand les indicateurs sont perimes.
+  g <- .ug_sf_leger(id, chemin)
+  if (is.null(g)) {
+    lu <- tryCatch(.lire_projet(id, langue), error = function(e) NULL)
+    g <- lu$familles %||% lu$indicateurs
+  }
   if (is.null(g) || !inherits(g, "sf")) {
     g <- tryCatch(.ns("load_parcels")(id), error = function(e) NULL)
     if (is.null(g)) return(NULL)
