@@ -19,7 +19,10 @@ regen_essences(projet, ug = NULL, top_n = 3, langue = "fr")
 JSON: \code{ugf} (per unit: identity, priority, sensitivity, summer
 T max, soil water minimum, frost days, and its ranked species with
 suitability 0-100, limiting factor and confidence), \code{tete} (species
-first in the most units), \code{facteurs}, \code{texte}, \code{methode}, \code{source}.
+first in the most units), \code{facteurs}, \code{texte}, \code{methode}, \code{climat}
+(observed summers, hot summer, ERA5 winter minimum, late-frost years,
+cold threshold), \code{source}. Per unit, \code{ecartees_froid} and
+\code{non_mediterraneenne} when relevant.
 }
 \description{
 Deterministic ranking from the nemeton core
@@ -30,5 +33,8 @@ outputs the regeneration analysis cached in the project
 Nothing is recomputed: without an analysis, the error
 \code{nemetonmcp_regeneration_absente} says how to run it. The shade axis is
 left out (the engine's LAI is not kept on disk); invasive species are
-excluded.
+excluded. Site conditions come from the observed climate (not a
+projection); species that cannot stand the colder of -15 degrees C and the
+observed ERA5 winter minimum are set aside (\code{ecartees_froid}), and the best
+non-Mediterranean species is given when it is not in the ranking.
 }
