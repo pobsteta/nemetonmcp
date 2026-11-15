@@ -33,7 +33,7 @@ Référence : `specs/BRIEF-visualisation-nemeton-claude.md`.
 | veut planifier, valider ou partager des actions sylvicoles | **Plan d'actions** (`vues/plan/`) | `plan_actions`, `ajouter_action`, `modifier_action`, `supprimer_action`, `profils_experts`, `exporter_marculus` |
 | veut voir le dépérissement (FORDEAD, FAST, RECONFORT), l'accessibilité au débardage ou le climat de la régénération | **Cartes du projet** (`vues/rasters/`) | `vue_rasters` |
 | pose une question rapide sur un projet calculé (« où en est Couchey ? », « ses points faibles ? ») | conversation | `fiche_projet` : score, NDP, familles classées, points forts et faibles, plan résumé, état du calcul, phrase `texte` ; relue en cache tant que rien ne change. Ouvrir l'Atlas seulement si l'utilisateur veut la carte |
-| veut un rapport, un GeoPackage | conversation | `generer_rapport` (pièce officielle, PDF), `exporter_gpkg` (connecteur distant : lien `urls` ; avec `zip = true`, le GeoPackage zippé en base64, que la vue Atlas propose au téléchargement comme le CSV) |
+| veut un rapport, un GeoPackage | conversation | `generer_rapport` (pièce officielle, PDF ; tâche de fond : rend un `job_id`, le chemin du PDF, et son lien `urls` avec le connecteur distant, arrivent dans `etat_calcul` quand `statut = termine`, après une à quatre minutes), `exporter_gpkg` (connecteur distant : lien `urls` ; avec `zip = true`, le GeoPackage zippé en base64, que la vue Atlas propose au téléchargement comme le CSV) |
 | veut des UGF numérotées comme les parcelles forestières ONF | conversation | `croiser_onf`, puis `lancer_calcul` (voir « UGF depuis le parcellaire ONF ») |
 | veut éditer les unités de gestion | application nemetonshiny | `url_app` ; `appliquer_ugf` pour un découpage déjà prêt en fichier |
 
@@ -48,18 +48,34 @@ porte sa forêt et son n° de parcelle (`onf_foret_id`, `onf_parcelle`…).
    (`purger = true` : privées selon la DGFiP, couvertes par l'ONF sous le seuil
    du projet, ou hors parcellaire ONF). Sans réponse, `purger` vaut le réglage
    du projet. Retirer des parcelles change le projet : le dire avant d'appeler.
-2. `croiser_onf` prend environ 35 s, et plus au premier appel, qui télécharge
-   le fichier DGFiP une fois pour toutes. Prévenir l'utilisateur de l'attente.
-3. Résumer le retour : `n_ugf`, `n_parcelles`, `n_cad` (UGF hors ONF,
-   `cad~<idu>`), et la liste `ecartees` avec raison (`privee`, `couverture`,
-   `hors_onf`) et propriétaire. Une parcelle écartée à tort se réintègre dans
-   nemetonshiny (onglet Sélection) avant de recroiser.
-4. `indicateurs_perimes = true` : proposer `lancer_calcul`, puis l'Atlas.
+2. **Premier appel (aperçu)** : `croiser_onf(projet, purger)` sans jeton
+   n'écrit rien. Il prend 40 à 70 s, jusqu'à environ 160 s à froid (le fichier
+   DGFiP est téléchargé une fois pour toutes) : prévenir l'utilisateur de
+   l'attente. Il rend l'erreur `confirmation_requise` avec `apercu`
+   (`ecartees`, `n_ecartees`, `n_retenues`) et un `jeton`.
+3. Montrer l'aperçu (parcelles qui quitteraient le projet) et demander
+   confirmation. **Seulement si l'utilisateur confirme**, rappeler
+   `croiser_onf` avec les mêmes arguments et le `jeton` (usage unique,
+   10 minutes). Le second appel lance le croisement en tâche de fond et rend
+   aussitôt un `job_id`.
+4. Suivre `etat_calcul(projet)` (`type = onf`) jusqu'à `statut = termine`,
+   puis résumer le résultat : `n_ugf`, `n_parcelles`, `n_cad` (UGF hors
+   ONF, `cad~<idu>`), et la liste `ecartees` avec raison (`privee`,
+   `couverture`, `hors_onf`) et propriétaire. Une parcelle écartée à tort se
+   réintègre dans nemetonshiny (onglet Sélection) avant de recroiser.
+5. `indicateurs_perimes = true` : proposer `lancer_calcul`, puis l'Atlas.
 
 `appliquer_ugf(projet, fichier, remplacer)` remplace les UGF par celles d'un
 GeoPackage ou d'un GeoJSON de tènements **lisible par le serveur** (colonnes
-`idu` et `label_ugf`, `onf_*` facultatives). Rien n'est écrit si un IDU est
-inconnu ou si une parcelle n'est pas exactement pavée.
+`idu` et `label_ugf`, `onf_*` facultatives), au **chemin absolu** (le chemin
+fait partie de l'empreinte du jeton). Même protocole en deux temps : l'aperçu
+(`n_ugf_remplacees`, `n_ugf_nouvelles`) et un jeton, puis l'écriture avec le
+jeton si l'utilisateur confirme. Rien n'est écrit si un IDU est inconnu ou si
+une parcelle n'est pas exactement pavée.
+
+**Un seul job par projet** : pendant un calcul, un rapport ou un croisement
+ONF, un second lancement rend `calcul_en_cours`. Un rapport ou un croisement
+ne s'annule pas (`annuler_calcul` rend `annule = false`).
 
 Les réglages du croisement (couverture minimale, tolérance d'accrochage,
 seuils de rattachement) sont ceux du projet, dans nemetonshiny (Paramètres,
@@ -164,8 +180,14 @@ l'écarte (`abandonnee`). Ne jamais valider, planifier ou réaliser une action
 Dans la conversation :
 - lire le plan avec `plan_actions(projet, geojson = false)` ;
 - passer les années civiles (`annee: 2030`), pas les décalages ;
+- **écrire en deux temps** : `ajouter_action`, `modifier_action` et
+  `supprimer_action` n'écrivent rien au premier appel ; ils rendent
+  `confirmation_requise` avec un `apercu` de l'opération et un `jeton`. Dire à
+  l'utilisateur ce qui va être écrit et, seulement s'il confirme, rappeler
+  l'outil avec les mêmes arguments et le `jeton`. Les vues refont l'appel
+  avec le jeton d'elles-mêmes : la personne a déjà validé dans la vue ;
 - pour modifier, passer `attendu = <version>` lue dans `plan_actions` :
-  l'erreur `nemetonmcp_conflit` signale que quelqu'un a modifié l'action
+  l'erreur `conflit` signale que quelqu'un a modifié l'action
   entre-temps et porte sa version actuelle dans `candidats` ;
 - préférer le statut `abandonnee` à `supprimer_action` pour garder la trace
   au tableau.
@@ -332,9 +354,14 @@ PDF.
 
 ## Erreurs du connecteur
 
-Les outils rendent `{"ok": false, "erreur", "classe", "candidats"}` :
+Les erreurs sortent en erreur d'outil (`isError`), au format
+`{"ok": false, "classe", "code", "langue", "erreur", "action", "candidats"}`.
+Décider sur `code` (la classe sans son préfixe `nemetonshiny_` ou
+`nemetonmcp_`) ; `action` est la suite à proposer, en clair. Un job en échec
+n'est pas une erreur d'outil : `etat_calcul` rend alors `ok = false` avec
+`statut = "echec"` et les mêmes champs.
 
-| Classe | Réponse |
+| Code (classe) | Réponse |
 | --- | --- |
 | `nemetonmcp_departement_ambigu`, `nemetonshiny_projet_ambigu` | proposer les `candidats` |
 | `nemetonmcp_commune_introuvable` | vérifier l'orthographe avec l'utilisateur, ou demander une commune voisine |
@@ -348,6 +375,8 @@ Les outils rendent `{"ok": false, "erreur", "classe", "candidats"}` :
 | `nemetonshiny_onf_echec` | `croiser_onf` : source ONF, cadastre ou DGFiP injoignable, aucune forêt publique ou aucun recoupement ; le projet n'a pas changé |
 | `nemetonshiny_idu_inconnu` | `appliquer_ugf` : le fichier cite une parcelle absente du projet ; aucune parcelle n'est créée |
 | `nemetonshiny_pavage_invalide` | `appliquer_ugf` : les tènements ne pavent pas exactement les parcelles nommées ; le projet n'a pas changé |
+| `confirmation_requise` | montrer `apercu` à l'utilisateur ; rappeler avec `jeton` seulement s'il confirme |
+| `jeton_invalide` | jeton inconnu, déjà utilisé, périmé, ou paramètres changés depuis l'aperçu : redemander un aperçu (appel sans jeton) |
 | `nemetonmcp_couche_absente` | `vue_rasters` : couche inconnue ou sans frise ; `candidats` liste les couches du projet |
 | `nemetonshiny_fichier_invalide` | `appliquer_ugf` : fichier introuvable, illisible ou sans `idu` / `label_ugf` |
 

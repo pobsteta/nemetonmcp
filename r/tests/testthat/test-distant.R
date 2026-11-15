@@ -127,6 +127,22 @@ test_that(".ajouter_urls ajoute un lien par fichier servi sans toucher au reste"
   expect_equal(.ajouter_urls("texte", cfg), "texte")
 })
 
+test_that("le PDF d'un rapport termine recoit son lien dans la reponse d'etat_calcul", {
+  # Depuis nemetonshiny 2026.11, generer_rapport rend un job_id ; le chemin du
+  # PDF arrive dans etat_calcul (type rapport, statut termine).
+  cfg <- config_test()
+  f <- file.path(cfg$racine_projets, "p1", "exports", "rapport.pdf")
+  dir.create(dirname(f), recursive = TRUE)
+  writeBin(as.raw(1:10), f)
+  texte <- .json(list(ok = TRUE, projet = "p1", type = "rapport", statut = "termine",
+                      job_id = "j1", fichier = normalizePath(f)))
+  x <- jsonlite::fromJSON(.ajouter_urls(texte, cfg), simplifyVector = FALSE)
+  expect_match(x$urls[[normalizePath(f)]], "/rapport.pdf$")
+  # Un job en echec (ok = false) n'a pas de fichier a servir : inchange.
+  echec <- .json(list(ok = FALSE, statut = "echec", type = "rapport", code = "erreur"))
+  expect_equal(.ajouter_urls(echec, cfg), echec)
+})
+
 # ------------------------------------------------------------- routage HTTP
 
 requete <- function(chemin, methode = "GET", corps = NULL, jeton = NULL) {

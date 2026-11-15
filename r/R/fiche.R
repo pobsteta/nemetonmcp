@@ -157,7 +157,7 @@
 #'   and `calcul` (state of the computation, read on each call).
 #' @export
 fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     id <- .resoudre_projet(projet)
     langue <- if (identical(langue, "en")) "en" else "fr"
     calcul <- tryCatch({

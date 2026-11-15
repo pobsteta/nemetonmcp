@@ -402,12 +402,53 @@
     return mcp.callTool(NV.SERVEUR, outil, entree, options).then(function (res) {
       var p = res && res.payload;
       if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) { /* texte brut */ } }
-      if (p && p.ok === false) {
-        var err = new Error(p.erreur || "erreur");
-        err.nemeton = true; err.classe = p.classe; err.candidats = p.candidats;
-        throw err;
-      }
+      if (p && p.ok === false) throw NV.erreurNemeton(p);
       return p;
+    }, function (err) {
+      // Les erreurs du connecteur sortent en isError : la capacité mcp rejette
+      // (tool_error) ; le JSON de l'erreur est relu dans le rejet.
+      var p = NV.lireErreurOutil(err);
+      throw p ? NV.erreurNemeton(p) : err;
+    });
+  };
+
+  /** Erreur JS d'une réponse `{ok: false, code, classe, erreur, action, ...}`. */
+  NV.erreurNemeton = function (p) {
+    var err = new Error(p.erreur || p.code || "erreur");
+    err.nemeton = true;
+    ["classe", "code", "action", "candidats", "jeton", "apercu", "projet", "projet_nom", "expire_a"]
+      .forEach(function (k) { if (p[k] != null) err[k] = p[k]; });
+    return err;
+  };
+
+  /** JSON `{ok: false, ...}` porté par un rejet tool_error, ou null. */
+  NV.lireErreurOutil = function (err) {
+    if (!err) return null;
+    var sources = [err.payload, err.result && err.result.payload, err.text, err.message, err.detail];
+    for (var i = 0; i < sources.length; i++) {
+      var s = sources[i];
+      if (s && typeof s === "object" && s.ok === false) return s;
+      if (typeof s !== "string") continue;
+      var debut = s.indexOf("{"), fin = s.lastIndexOf("}");
+      if (debut < 0 || fin <= debut) continue;
+      try {
+        var p = JSON.parse(s.slice(debut, fin + 1));
+        if (p && p.ok === false) return p;
+      } catch (e) { /* pas du JSON */ }
+    }
+    return null;
+  };
+
+  /**
+   * Écriture dans un projet existant (plan d'actions) : le connecteur demande
+   * une confirmation (erreur confirmation_requise portant un jeton) avant
+   * d'écrire. Dans une vue, la personne a déjà validé son geste (bouton
+   * Enregistrer, Valider…) : l'appel est refait avec le jeton.
+   */
+  NV.ecrire = function (mcp, outil, entree, options) {
+    return NV.appeler(mcp, outil, entree, options).catch(function (e) {
+      if (!e || e.code !== "confirmation_requise" || !e.jeton) throw e;
+      return NV.appeler(mcp, outil, Object.assign({}, entree, { jeton: e.jeton }), options);
     });
   };
 

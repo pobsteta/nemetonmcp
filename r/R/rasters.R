@@ -536,7 +536,7 @@
 #' @export
 vue_rasters <- function(projet, couche = NULL, date = NULL, langue = "fr",
                         inclure_png = FALSE, max_px = .RASTER_MAX_PX, theme = NULL) {
-  .mcp_call({
+  .mcp_call(langue = langue, {
     if (!requireNamespace("png", quietly = TRUE)) {
       .abort("Le paquet {.pkg png} est requis pour rendre les rasters.", "nemetonmcp_dependance_manquante")
     }

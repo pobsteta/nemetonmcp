@@ -375,7 +375,7 @@ await test("Calcul : suivi en direct, annulation, fin, échec et relance", async
   await capture(page, "calcul-termine");
 
   // Échec (relu par Rafraîchir) : journal affiché, relance possible.
-  await page.evaluate(() => { window.__etat = { ok: true, projet: "p-test", statut: "echec", erreur: "Mémoire épuisée", log: ["ligne 1", "ligne 2"] }; });
+  await page.evaluate(() => { window.__etat = { ok: false, projet: "p-test", type: "calcul", statut: "echec", code: "calcul_echec", erreur: "Mémoire épuisée", log: ["ligne 1", "ligne 2"] }; });
   await page.click("#btn-rafraichir");
   await page.waitForSelector("#bloc-journal:not([hidden])");
   assert.equal(await page.textContent("#erreur"), "Mémoire épuisée");
@@ -429,6 +429,22 @@ function planSimule(plan) {
       return () => { window.__watch = null; };
     },
     callTool: (server, tool, input) => {
+      // Comme le connecteur : les erreurs sortent en isError, donc en rejet
+      // tool_error portant le JSON ; une écriture du plan demande d'abord une
+      // confirmation (jeton), que la vue refait aussitôt.
+      const echec = (x) => Promise.reject({ code: "tool_error", message: JSON.stringify(x) });
+      if (/^(ajouter|modifier|supprimer)_action$/.test(tool) && !input.jeton) {
+        window.__apercus = (window.__apercus || 0) + 1;
+        if (tool === "modifier_action" && window.__conflit) {
+          const a = window.__plan.actions.find((x) => x.id === input.action_id);
+          // Un autre compte a modifié l'action entre-temps (__conflit : classe
+          // rendue, nemetonclaude_conflit pour un serveur d'avant 0.8.0).
+          const qui = window.__conflit === "nemetonmcp_conflit" ? "alice" : "bob";
+          Object.assign(a, { priorite: "basse", modifie_par: qui, version: "autre-" + qui });
+          return echec({ ok: false, code: "conflit", erreur: "L'action a été modifiée par " + qui + " pendant votre saisie.", classe: window.__conflit, candidats: [{ ...a }] });
+        }
+        return echec({ ok: false, code: "confirmation_requise", classe: "nemetonshiny_confirmation_requise", erreur: "Confirmation requise : rien n'a été écrit.", jeton: "j" + window.__apercus, apercu: { operation: tool } });
+      }
       window.__appels.push({ type: "call", tool, input });
       const p = window.__plan;
       if (tool === "plan_actions") return rendre(JSON.parse(JSON.stringify(p)));
@@ -440,14 +456,7 @@ function planSimule(plan) {
       }
       if (tool === "modifier_action") {
         const a = p.actions.find((x) => x.id === input.action_id);
-        if (window.__conflit) {
-          // Un autre compte a modifié l'action entre-temps (__conflit : classe
-          // rendue, nemetonclaude_conflit pour un serveur d'avant 0.8.0).
-          const qui = window.__conflit === "nemetonmcp_conflit" ? "alice" : "bob";
-          Object.assign(a, { priorite: "basse", modifie_par: qui, version: "autre-" + qui });
-          return rendre({ ok: false, erreur: "L'action a été modifiée par " + qui + " pendant votre saisie.", classe: window.__conflit, candidats: [{ ...a }] });
-        }
-        if (input.attendu !== a.version) return rendre({ ok: false, erreur: "version inattendue " + input.attendu, classe: "x" });
+        if (input.attendu !== a.version) return echec({ ok: false, code: "x", erreur: "version inattendue " + input.attendu, classe: "x" });
         Object.assign(a, input.modifications, { version: a.version + "+" });
         return rendre({ ok: true, action: a });
       }

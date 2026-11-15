@@ -4,16 +4,19 @@
 \alias{supprimer_action}
 \title{Remove an action from a project's plan}
 \usage{
-supprimer_action(projet, action_id)
+supprimer_action(projet, action_id, jeton = NULL)
 }
 \arguments{
 \item{projet}{Project id or name.}
 
 \item{action_id}{Action id.}
+
+\item{jeton}{Confirmation token of the first call.}
 }
 \value{
 JSON: \code{projet}, \code{action_id}.
 }
 \description{
-The removal stays in the plan's history.
+The removal stays in the plan's history. Two steps (confirmation token),
+as \code{\link[=ajouter_action]{ajouter_action()}}.
 }

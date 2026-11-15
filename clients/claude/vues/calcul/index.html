@@ -141,7 +141,7 @@
 
   NV.textes({
     fr: {
-      surtitre: "Calcul des indicateurs", etat: "État", avancement: "Avancement", indicateurs: "Indicateurs",
+      surtitre: "Calcul des indicateurs", etat: "État", type_rapport: "rapport PDF", type_onf: "croisement ONF", avancement: "Avancement", indicateurs: "Indicateurs",
       ecoule: "Temps écoulé", tache: "En cours", annuler: "Annuler le calcul", relancer: "Relancer le calcul",
       rafraichir: "Rafraîchir", confirmer_annulation: "Arrêter le calcul au prochain indicateur ?",
       oui_arreter: "Oui, arrêter", non_continuer: "Non, continuer", journal: "Journal du calcul",
@@ -162,7 +162,7 @@
       h: "{h} h {m} min", min: "{m} min {s} s", s: "{s} s"
     },
     en: {
-      surtitre: "Indicator computation", etat: "Status", avancement: "Progress", indicateurs: "Indicators",
+      surtitre: "Indicator computation", etat: "Status", type_rapport: "PDF report", type_onf: "ONF crossing", avancement: "Progress", indicateurs: "Indicators",
       ecoule: "Elapsed", tache: "Now running", annuler: "Cancel the computation", relancer: "Restart the computation",
       rafraichir: "Refresh", confirmer_annulation: "Stop the computation at the next indicator?",
       oui_arreter: "Yes, stop", non_continuer: "No, keep going", journal: "Computation log",
@@ -223,6 +223,9 @@
     var pastille = $("statut");
     pastille.dataset.statut = statut;
     pastille.textContent = NV.t("s_" + statut) !== "s_" + statut ? NV.t("s_" + statut) : statut;
+    // Le job suivi peut être un rapport ou un croisement ONF (un seul job par projet).
+    var type = e.type && e.type !== "calcul" ? NV.t("type_" + e.type) : "";
+    if (type && type !== "type_" + e.type) pastille.textContent += " · " + type;
 
     var max = Number(e.progression_max), val = Number(e.progression);
     var pct = isFinite(max) && max > 0 && isFinite(val) ? Math.max(0, Math.min(100, (val / max) * 100)) : null;
@@ -268,7 +271,9 @@
     var p = res && res.payload;
     if (typeof p === "string") { try { p = JSON.parse(p); } catch (x) { /* texte brut */ } }
     if (!p || typeof p !== "object") return;
-    if (p.ok === false) {
+    // Un job en échec répond ok = false avec statut = "echec" : c'est un état
+    // à afficher (l'outil a réussi), pas une erreur du connecteur.
+    if (p.ok === false && p.statut !== "echec") {
       signaler(function () { return NV.t("projet_inconnu", { message: p.erreur || "" }); }, true);
       return;
     }

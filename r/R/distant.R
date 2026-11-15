@@ -420,6 +420,7 @@ config_distant <- function(url = .env_mcp("URL"),
 serveur_mcp_distant <- function(host = "127.0.0.1",
                                 port = as.integer(.env_mcp("PORT", "8765")),
                                 config = config_distant()) {
+  .environnement_serveur()
   the <- .mcptools("the")
   the$sessions_enabled <- FALSE
   .mcptools("set_server_tools")(outils_mcp(), session_tools = FALSE)
