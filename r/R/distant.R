@@ -86,7 +86,7 @@ config_distant <- function(url = .env_mcp("URL"),
                      "chercher_commune", "parcelles_commune", "vue_atlas",
                      "contexte_carto", "detail_indicateur", "fiche_projet",
                      "plan_actions", "profils_experts", "vue_rasters",
-                     "alertes_sanitaires", "regen_essences")
+                     "alertes_sanitaires", "regen_essences", "chercher_connaissances")
 
 .outils_permis <- function(roles, config) {
   c(if (length(intersect(roles, c(config$roles_lecture, config$roles_ecriture)))) .OUTILS_LECTURE,
