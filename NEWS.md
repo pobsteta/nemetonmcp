@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.2 (2026-11-15)
+
+- Adaptation à nemetonshiny 2026.11 : erreurs isError, jeton, outils longs (#27)
+
 # nemetonmcp 2026.11.1 (2026-11-13)
 
 - Versions calendaires AAAA.M.N, comme marculus (#26)
