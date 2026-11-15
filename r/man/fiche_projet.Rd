@@ -24,5 +24,9 @@ confidence, family scores), strengths and weaknesses, a summary of the
 action plan, the state of the computation, a one-sentence \code{texte}, and a
 \code{display_report} block (title, KPIs, bar chart, table, markdown) ready to
 pass to VICTOR's tool. The sheet is cached in \code{fiche.json}, in the
-project's view folder, until the indicators or the plan change.
+project's view folder, until the indicators, the units or the plan change.
+Without indicators (set aside after the units changed, or never computed)
+the sheet still gives the units, the area and the plan, with
+\code{scores_a_calculer = TRUE}, \code{indicateurs_perimes} and a text saying the
+scores are to (re)compute: never a score of 0 nor « 0 UGF ».
 }

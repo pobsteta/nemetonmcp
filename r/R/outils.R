@@ -95,7 +95,7 @@ outils_mcp <- function() {
            inclure_geojson = b("Also return the GeoJSON inline when under 2 MB (default false).", required = FALSE)),
       lecture = TRUE),
     .outil(fiche_projet, "fiche_projet",
-      "Sheet of a computed project, for quick answers: global score, NDP level, confidence, the 12 family scores sorted, strengths and weaknesses, action plan summary (counts by status, next actions), computation state, a one-sentence summary (texte), and a display_report block (title, kpis, chart, table, markdown) to pass as is to a dashboard tool. Cached in fiche.json until the indicators or the plan change.",
+      "Sheet of a computed project, for quick answers: global score, NDP level, confidence, the 12 family scores sorted, strengths and weaknesses, action plan summary (counts by status, next actions), computation state, a one-sentence summary (texte), and a display_report block (title, kpis, chart, table, markdown) to pass as is to a dashboard tool. Cached in fiche.json until the indicators, the units or the plan change. Without indicators (set aside after the units changed, or never computed) it still gives the unit count, area and plan, with scores_a_calculer = true and indicateurs_perimes: say the scores are to recompute and offer lancer_calcul, never report a score of 0.",
       list(projet = projet_arg, langue = langue_arg,
            actualiser = b("Rebuild the sheet even if the cached one is current (default false).", required = FALSE)),
       lecture = TRUE),

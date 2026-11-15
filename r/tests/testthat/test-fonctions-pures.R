@@ -250,3 +250,63 @@ test_that(".fiche se passe du plan et parle anglais", {
   expect_false(grepl("Next actions", f$display_report$markdown))
   expect_match(f$texte, "^Dabo: overall score 65 out of 100")
 })
+
+test_that(".n_ugf compte les UGF du projet, pas les scores", {
+  projet <- list(ugs = data.frame(ug_id = 1:63), metadata = list(ug_count = 12L))
+  expect_equal(.n_ugf(projet, list(n_ugf = 0L)), 63L)
+  expect_equal(.n_ugf(list(metadata = list(ug_count = 63L)), list(n_ugf = 0L)), 63L)
+  expect_equal(.n_ugf(NULL, list(n_ugf = 4L)), 4L)
+  expect_null(.n_ugf(NULL, NULL))
+})
+
+test_that(".etat_scores reconnait des indicateurs mis de cote", {
+  expect_equal(.etat_scores(list())$etat, "absents")
+  meta <- list(indicateurs_perimes = list(
+    list(fichier = "indicators.perime-1.parquet", motif = "parcelles", date = "2026-10-01T10:00:00"),
+    list(fichier = "indicators.perime-2.parquet", motif = "ugf", date = "2026-11-15T12:02:05")))
+  e <- .etat_scores(meta)
+  expect_equal(e$etat, "perimes")
+  expect_equal(e$motif, "ugf")
+  df <- data.frame(fichier = "a", motif = "ugf", date = "2026-11-15T12:02:05")
+  expect_equal(.etat_scores(list(indicateurs_perimes = df))$motif, "ugf")
+})
+
+test_that(".fiche sans indicateurs annonce les UGF et des scores a recalculer", {
+  e <- entete_fiche
+  e$n_ugf <- 63L
+  e$global_score <- NA
+  e$familles <- list()
+  plan <- .resume_plan(list(list(annee = 2028L, type = "eclaircie", statut = "validee",
+                                 priorite = "haute", ug_label = "UGF 1")))
+  f <- .fiche(e, plan, surface_ha = 41.23, scores = list(etat = "perimes", motif = "ugf"))
+  expect_true(f$scores_a_calculer)
+  expect_true(f$indicateurs_perimes)
+  expect_equal(f$motif_perime, "ugf")
+  expect_null(f$global_score)
+  expect_length(f$familles, 0)
+  expect_match(f$texte, "^Dabo : 63 UGF, 41,2 ha\\. Scores à recalculer")
+  expect_match(f$texte, "modification des unités de gestion")
+  expect_false(grepl("0 UGF|score global", f$texte))
+  r <- f$display_report
+  expect_equal(r$kpis[[1]]$value, "à recalculer")
+  expect_equal(r$kpis[[3]]$value, "63 · 41,2\u00a0ha")
+  expect_null(r$chart)
+  expect_match(r$markdown, "2028 : eclaircie, UGF 1", fixed = TRUE)
+  j <- jsonlite::fromJSON(.json(f), simplifyVector = FALSE)
+  expect_null(j$global_score)
+
+  jamais <- .fiche(e, NULL, scores = list(etat = "absents"))
+  expect_false(jamais$indicateurs_perimes)
+  expect_match(jamais$texte, "Scores à calculer")
+  e$langue <- "en"
+  en <- .fiche(e, NULL, scores = list(etat = "perimes", motif = "ugf"))
+  expect_match(en$texte, "^Dabo: 63 units\\. Scores to recompute: the indicators were set aside after the management units changed")
+})
+
+test_that(".surface_projet retombe sur les parcelles", {
+  parcelles <- data.frame(contenance = c(10000, 5000))
+  expect_equal(.surface_projet(NULL, list(parcels = parcelles)), 1.5)
+  fam <- data.frame(surface_m2 = c(20000, 2000))
+  expect_equal(.surface_projet(fam, list(parcels = parcelles)), 2.2)
+  expect_true(is.na(.surface_projet(NULL, NULL)))
+})
