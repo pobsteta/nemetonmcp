@@ -127,3 +127,32 @@ test_that(".unites_regen met NA, pas 0, au gel tardif non calcule", {
   expect_true(is.na(u$r7_gel_days[1]))
   expect_equal(u$r7_gel_days[2], 2)
 })
+
+test_that(".statut_mfr suit l'annexe 1.1 de l'arrete MFR de Bourgogne-Franche-Comte", {
+  expect_equal(.statut_mfr(c("quercus_pubescens", "pinus_halepensis", "pinus_canariensis", "quercus_ilex",
+                             "cedrus_atlantica", "pinus_nigra", "pinus_pinea")),
+               c("objectif", "accompagnement", "hors_liste", "hors_liste", "objectif", "objectif", "accompagnement"))
+  expect_length(intersect(.MFR_BFC$objectif, .MFR_BFC$accompagnement), 0)
+  # Tous les codes existent dans la table des essences du coeur.
+  eu <- nemeton::european_species_tolerances()
+  expect_true(all(c(.MFR_BFC$objectif, .MFR_BFC$accompagnement) %in% c(eu$code, "abies_nordmanniana")))
+})
+
+test_that(".filtrer_froid avec aides ne classe que les essences objectif et liste les autres", {
+  rl <- rang_long
+  rl$species_code <- c("pinus_halepensis", "quercus_ilex", "fagus_sylvatica", "quercus_petraea", NA)
+  tr <- traits_fictifs
+  tr$code <- c("pinus_halepensis", "quercus_ilex", "fagus_sylvatica", "quercus_petraea")
+  f <- .filtrer_froid(rl, tr, -15, 2, aides = TRUE)
+  expect_equal(f$rang$species_code[f$rang$ug_id == "a"], c("fagus_sylvatica", "quercus_petraea"))
+  expect_equal(f$ecartees$species_code, "pinus_halepensis")
+  expect_equal(f$hors_aide$species_code, "quercus_ilex")
+  expect_equal(f$hors_aide$aides_bfc, "hors_liste")
+  sans <- .filtrer_froid(rl, tr, -15, 2)
+  expect_equal(sans$rang$species_code[sans$rang$ug_id == "a"], c("quercus_ilex", "fagus_sylvatica"))
+  expect_equal(nrow(sans$hors_aide), 0L)
+  s <- .synthese_essences(f$rang[f$rang$ug_id == "a", ], data.frame(ug_id = "a", label = "UGF 1"), "Couchey",
+                          hors_aide = f$hors_aide)
+  expect_equal(s$ugf[[1]]$essences[[1]]$aides_bfc, "objectif")
+  expect_match(s$texte, "non éligibles en essence objectif aux aides de l'État en Bourgogne-Franche-Comté : Chêne vert \\(hors liste\\)\\.$")
+})

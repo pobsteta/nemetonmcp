@@ -29,6 +29,9 @@
     froid_une = "%s (tient %s \u00b0C)",
     locale = " Meilleure essence non m\u00e9diterran\u00e9enne : %s.",
     locale_une = "%s (%s/100)",
+    aides = " Class\u00e9es plus haut mais non \u00e9ligibles en essence objectif aux aides de l'\u00c9tat en Bourgogne-Franche-Comt\u00e9 : %s.",
+    statuts_aides = list(accompagnement = "en accompagnement seulement", hors_liste = "hors liste"),
+    methode_aides = " Seules les essences \u00e9ligibles en essence objectif aux aides de l'\u00c9tat en Bourgogne-Franche-Comt\u00e9 sont class\u00e9es (arr\u00eat\u00e9 r\u00e9gional MFR du 6 juillet 2026, annexe 1.1) ; aides = FALSE pour le classement \u00e9cologique seul.",
     facteurs = c(chaleur = "la chaleur", vpd = "la s\u00e9cheresse de l'air", secheresse = "la s\u00e9cheresse",
                  gel = "le gel tardif", ombre = "l'ombre"),
     sans_station = "conditions de station inconnues"),
@@ -48,6 +51,9 @@
     froid_une = "%s (hardy to %s \u00b0C)",
     locale = " Best non-Mediterranean species: %s.",
     locale_une = "%s (%s/100)",
+    aides = " Ranked higher but not eligible as main species for state aid in Bourgogne-Franche-Comte: %s.",
+    statuts_aides = list(accompagnement = "companion species only", hors_liste = "not listed"),
+    methode_aides = " Only species eligible as main species for state aid in Bourgogne-Franche-Comte are ranked (regional MFR decree of 6 July 2026, annex 1.1); aides = FALSE for the ecological ranking alone.",
     facteurs = c(chaleur = "heat", vpd = "air dryness", secheresse = "drought", gel = "late frost", ombre = "shade"),
     sans_station = "unknown site conditions")
 )
@@ -136,32 +142,38 @@
 #' @param traits Species traits (`code`, `frost_winter_min_c`, `thermophily`).
 #' @param seuil Winter minimum (degrees C) a species must stand.
 #' @param top_n Species kept per unit.
+#' @param aides Keep only species eligible as main ("objectif") species for
+#'   public aid in Bourgogne-Franche-Comte (`.MFR_BFC`).
 #' @return list: `rang` (non frost-sensitive species, top_n per unit,
-#'   re-ranked), `ecartees` (frost-sensitive species that ranked above the
+#'   re-ranked), `hors_aide` (not eligible as main species, ranked above the
+#'   last kept one, when `aides`), `ecartees` (frost-sensitive species that ranked above the
 #'   last kept one), `locale` (best non-Mediterranean species per unit).
 #' @noRd
-.filtrer_froid <- function(rang, traits, seuil, top_n) {
+.filtrer_froid <- function(rang, traits, seuil, top_n, aides = FALSE) {
   j <- match(rang$species_code, traits$code)
   rang$tenue_froid_c <- suppressWarnings(as.numeric(traits$frost_winter_min_c[j]))
   rang$thermophilie <- suppressWarnings(as.numeric(traits$thermophily[j]))
   rang$gelive <- !is.na(rang$tenue_froid_c) & rang$tenue_froid_c > seuil
+  rang$aides_bfc <- .statut_mfr(rang$species_code)
+  rang$hors_aide <- isTRUE(aides) & rang$aides_bfc != "objectif"
   vide <- rang[0, , drop = FALSE]
   parts <- lapply(unique(rang$ug_id), function(id) {
     df <- rang[rang$ug_id == id, , drop = FALSE]
     ok <- df[!is.na(df$rank), , drop = FALSE]
     ok <- ok[order(ok$rank), , drop = FALSE]
-    garde <- utils::head(ok[!ok$gelive, , drop = FALSE], top_n)
+    garde <- utils::head(ok[!ok$gelive & !ok$hors_aide, , drop = FALSE], top_n)
     limite <- if (nrow(garde) == top_n) max(garde$rank) else Inf
     ecartees <- utils::head(ok[ok$gelive & ok$rank < limite, , drop = FALSE], top_n)
-    locale <- utils::head(ok[!ok$gelive & !is.na(ok$thermophilie) &
+    hors <- utils::head(ok[!ok$gelive & ok$hors_aide & ok$rank < limite, , drop = FALSE], top_n)
+    locale <- utils::head(ok[!ok$gelive & !ok$hors_aide & !is.na(ok$thermophilie) &
                                ok$thermophilie < .THERMOPHILIE_MEDITERRANEENNE, , drop = FALSE], 1)
     if (nrow(garde)) garde$rank <- seq_len(nrow(garde)) else garde <- df[1, , drop = FALSE][NA_integer_, , drop = FALSE]
     if (!nrow(ok)) garde <- df[1, , drop = FALSE]
     garde$ug_id <- id
-    list(garde = garde, ecartees = ecartees, locale = locale)
+    list(garde = garde, ecartees = ecartees, hors_aide = hors, locale = locale)
   })
   pile <- function(k) { x <- lapply(parts, `[[`, k); if (length(x)) do.call(rbind, x) else vide }
-  list(rang = pile("garde"), ecartees = pile("ecartees"), locale = pile("locale"))
+  list(rang = pile("garde"), ecartees = pile("ecartees"), hors_aide = pile("hors_aide"), locale = pile("locale"))
 }
 
 # Choix d'une UGF par ug_id ou par nom (casse et accents ignores, nom
@@ -190,6 +202,16 @@
     aptitude = round(as.numeric(e$suitability[i]), 1), tenue_froid_c = e$tenue_froid_c[i]))
 }
 
+# Essences d'une UGF classees plus haut mais non eligibles en objectif aux
+# aides regionales (liste, NULL si aucune).
+.essences_hors_aide <- function(hors, id) {
+  if (is.null(hors) || !nrow(hors)) return(NULL)
+  e <- hors[hors$ug_id == id, , drop = FALSE]
+  if (!nrow(e)) return(NULL)
+  lapply(seq_len(nrow(e)), function(i) list(code = e$species_code[i], nom = e$label[i],
+    aptitude = round(as.numeric(e$suitability[i]), 1), aides_bfc = e$aides_bfc[i]))
+}
+
 # Meilleure essence non mediterraneenne d'une UGF, si elle n'est pas deja
 # dans son classement (NULL sinon).
 .essence_locale <- function(locale, id, codes) {
@@ -210,7 +232,7 @@
 #'   first species), `texte`.
 #' @noRd
 .synthese_essences <- function(rang, ugs, nom, langue = "fr", ecartees = NULL, locale = NULL,
-                               climat = NULL, seuil = NULL) {
+                               climat = NULL, seuil = NULL, hors_aide = NULL) {
   tx <- .TEXTES_REGEN[[if (identical(langue, "en")) "en" else "fr"]]
   rang <- rang[!is.na(rang$rank), , drop = FALSE]
   facteur <- function(x) ifelse(is.na(x), tx$sans_station,
@@ -226,10 +248,12 @@
       tmax_ete = signif(num(ugs, "tmax_moyenne")[k] + num(ugs, "d_tmax")[k], 3),
       rew_min = signif(num(ugs, "rew_min")[k], 3),
       jours_gel = signif(num(ugs, "r7_gel_days")[k], 3),
-      essences = lapply(seq_len(nrow(r)), function(i) list(
+      essences = lapply(seq_len(nrow(r)), function(i) Filter(Negate(is.null), list(
         rang = as.integer(r$rank[i]), code = r$species_code[i], nom = r$label[i], type = r$type[i],
         aptitude = round(as.numeric(r$suitability[i]), 1),
-        facteur_limitant = r$limiting_factor[i], confiance = r$confidence[i])),
+        facteur_limitant = r$limiting_factor[i], confiance = r$confidence[i],
+        aides_bfc = if ("aides_bfc" %in% names(r)) r$aides_bfc[i]))),
+      hors_objectif_aides = .essences_hors_aide(hors_aide, ugs$ug_id[k]),
       ecartees_froid = .essences_froid(ecartees, ugs$ug_id[k]),
       non_mediterraneenne = .essence_locale(locale, ugs$ug_id[k], r$species_code)))
   })
@@ -245,9 +269,16 @@
     x <- unlist(lapply(ugf, function(u) u$ecartees_froid), recursive = FALSE)
     x[!duplicated(vapply(x, `[[`, "", "nom"))]
   }
+  hors <- if (nrow(ugs) == 1L) ugf[[1]]$hors_objectif_aides else {
+    x <- unlist(lapply(ugf, function(u) u$hors_objectif_aides), recursive = FALSE)
+    x[!duplicated(vapply(x, `[[`, "", "nom"))]
+  }
   sup <- paste0(
     if (length(froid)) sprintf(tx$froid, .nombre(seuil, 0, langue), paste(vapply(froid, function(x) {
       sprintf(tx$froid_une, x$nom, .nombre(x$tenue_froid_c, 0, langue))
+    }, ""), collapse = ", ")) else "",
+    if (length(hors)) sprintf(tx$aides, paste(vapply(hors, function(x) {
+      sprintf("%s (%s)", x$nom, tx$statuts_aides[[x$aides_bfc]])
     }, ""), collapse = ", ")) else "",
     if (nrow(ugs) == 1L && !is.null(ugf[[1]]$non_mediterraneenne)) {
       l <- ugf[[1]]$non_mediterraneenne
@@ -290,6 +321,11 @@
 #' @param projet Project id or name.
 #' @param ug Optional management unit (id or name) to rank alone.
 #' @param top_n Species per unit (1 to 10, default 3).
+#' @param aides `TRUE` (default): rank only the species eligible as main
+#'   species for state aid in Bourgogne-Franche-Comte (regional MFR decree of
+#'   6 July 2026, annex 1.1); the higher-ranked others are listed in
+#'   `hors_objectif_aides`. `FALSE`: ecological ranking alone (each species
+#'   still carries `aides_bfc`).
 #' @param langue `"fr"` or `"en"`.
 #' @return JSON: `ugf` (per unit: identity, priority, sensitivity, summer
 #'   T max, soil water minimum, frost days, and its ranked species with
@@ -299,7 +335,7 @@
 #'   cold threshold), `source`. Per unit, `ecartees_froid` and
 #'   `non_mediterraneenne` when relevant.
 #' @export
-regen_essences <- function(projet, ug = NULL, top_n = 3, langue = "fr") {
+regen_essences <- function(projet, ug = NULL, top_n = 3, aides = TRUE, langue = "fr") {
   .mcp_call(langue = langue, {
     id <- .resoudre_projet(projet)
     langue <- if (identical(langue, "en")) "en" else "fr"
@@ -322,12 +358,16 @@ regen_essences <- function(projet, ug = NULL, top_n = 3, langue = "fr") {
     # de garder top_n (le coeur ne tient pas compte du froid d'hiver).
     rang <- nemeton::regen_rank_species(u, top_n = 1000L, region = "BFC")
     seuil <- min(.FROID_REFERENCE_C, climat$tmin_hiver_c %||% Inf)
-    filtre <- .filtrer_froid(rang, nemeton::european_species_tolerances(), seuil, top_n)
+    aides <- !isFALSE(as.logical(aides))
+    filtre <- .filtrer_froid(rang, nemeton::european_species_tolerances(), seuil, top_n, aides)
     nom <- tryCatch(nemetonshiny::projet_etat(id)$nom, error = function(e) NULL) %||% id
     s <- .synthese_essences(filtre$rang, sf::st_drop_geometry(u), nom, langue, filtre$ecartees,
-                            filtre$locale, climat, seuil)
+                            filtre$locale, climat, seuil, filtre$hors_aide)
+    tx <- .TEXTES_REGEN[[langue]]
+    if (aides) s$methode <- paste0(s$methode, tx$methode_aides)
     c(list(projet = id, nom = nom, n_ugf = nrow(u), top_n = top_n), s,
       list(climat = c(climat, list(seuil_froid_c = seuil)),
+           aides = list(filtre = aides, region = "Bourgogne-Franche-Comt\u00e9", arrete = .MFR_BFC$arrete, url = .MFR_BFC$url),
            source = list(dossier = "cache/regeneration",
                          date = format(file.mtime(file.path(dossier, "sensibilite.gpkg")), "%Y-%m-%d"))))
   })
