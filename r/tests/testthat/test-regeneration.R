@@ -59,3 +59,71 @@ test_that(".unites_regen joint les sorties du cache par ug_id", {
   expect_true(all(c("ug_id", "rank", "label", "suitability", "limiting_factor") %in% names(rk)))
   expect_false(anyNA(rk$rank))
 })
+
+traits_fictifs <- data.frame(code = c("pa", "qi", "fs", "qp"), frost_winter_min_c = c(-12, -15, -30, -30),
+                             thermophily = c(9, 8, 4, 5), stringsAsFactors = FALSE)
+rang_long <- data.frame(
+  ug_id = c("a", "a", "a", "a", "b"), rank = c(1L, 2L, 3L, 4L, NA),
+  species_code = c("pa", "qi", "fs", "qp", NA), label = c("Pin d'Alep", "Chêne vert", "Hêtre", "Chêne sessile", NA),
+  type = NA, suitability = c(97, 49, 38, 37, NA), limiting_factor = c("secheresse", "chaleur", "chaleur", "chaleur", NA),
+  confidence = "eleve", invasif = FALSE, stringsAsFactors = FALSE)
+
+test_that(".filtrer_froid ecarte les essences gelives, reclasse et garde la meilleure non mediterraneenne", {
+  f <- .filtrer_froid(rang_long, traits_fictifs, -15, 2)
+  a <- f$rang[f$rang$ug_id == "a", ]
+  expect_equal(a$species_code, c("qi", "fs"))
+  expect_equal(a$rank, 1:2)
+  expect_equal(f$ecartees$species_code, "pa")
+  expect_equal(f$ecartees$tenue_froid_c, -12)
+  expect_equal(f$locale$species_code, "fs")
+  b <- f$rang[f$rang$ug_id == "b", ]
+  expect_equal(nrow(b), 1L)
+  expect_true(is.na(b$rank))
+  # Seuil plus froid observe : le chene vert (-15) tombe aussi.
+  f2 <- .filtrer_froid(rang_long, traits_fictifs, -18, 2)
+  expect_equal(f2$rang$species_code[f2$rang$ug_id == "a"], c("fs", "qp"))
+  expect_equal(f2$ecartees$species_code, c("pa", "qi"))
+})
+
+test_that(".synthese_essences dit le froid, la base climatique et l'essence non mediterraneenne", {
+  f <- .filtrer_froid(rang_long, traits_fictifs, -15, 1)
+  ugs <- data.frame(ug_id = "a", label = "UGF 1", stringsAsFactors = FALSE)
+  climat <- list(annees_ete = c(2022L, 2023L), annee_canicule = 2022L)
+  s <- .synthese_essences(f$rang[f$rang$ug_id == "a", ], ugs, "Couchey", "fr", f$ecartees, f$locale, climat, -15)
+  expect_equal(s$ugf[[1]]$ecartees_froid[[1]]$nom, "Pin d'Alep")
+  expect_equal(s$ugf[[1]]$non_mediterraneenne$nom, "Hêtre")
+  expect_equal(s$texte, paste0("Couchey, UGF 1 : Chêne vert (49/100, limité par la chaleur).",
+    " Écartées pour le froid d'hiver (seuil -15 °C) : Pin d'Alep (tient -12 °C).",
+    " Meilleure essence non méditerranéenne : Hêtre (38/100).",
+    " Station : climat observé (étés 2022-2023, Tmax sous couvert de l'été 2022, retenu comme caniculaire), pas une projection."))
+  inconnu <- .synthese_essences(f$rang[f$rang$ug_id == "a", ], ugs, "Couchey", climat = list(annees_ete = integer()))
+  expect_match(inconnu$texte, "climat observé récent, pas une projection\\.$")
+  expect_match(s$methode, "pas une projection climatique")
+})
+
+test_that(".climat_regen lit les annees d'ete et du gel tardif dans le cache", {
+  d <- withr::local_tempdir()
+  dir.create(file.path(d, "microclimf")); dir.create(file.path(d, "meteoland"))
+  r <- terra::rast(nrows = 2, ncols = 2, vals = 1)
+  terra::writeRaster(r * 43, file.path(d, "microclimf", "cache_2023_abc_tmax.tif"))
+  terra::writeRaster(r * 38, file.path(d, "microclimf", "cache_2022_abc_tmax.tif"))
+  file.create(file.path(d, "meteoland", "tmin_1_2_3_4__y2022-2023__doy60-180.tif"))
+  u <- data.frame(tmax_moyenne = c(43, 44), d_tmax = c(-5, -6))
+  c1 <- .climat_regen(d, u)
+  expect_equal(c1$annees_ete, c(2022L, 2023L))
+  expect_equal(c1$annee_canicule, 2022L)
+  expect_equal(c1$annees_gel_tardif, c(2022L, 2023L))
+  expect_null(c1$tmin_hiver_c)
+  expect_false(c1$projection)
+})
+
+test_that(".unites_regen met NA, pas 0, au gel tardif non calcule", {
+  d <- withr::local_tempdir()
+  g <- sf::st_sfc(sf::st_point(c(843000, 6685000)), sf::st_point(c(843100, 6685000)), crs = 2154)
+  sf::st_write(sf::st_sf(ug_id = c("a", "b"), tmax_moyenne = 30, geometry = g), file.path(d, "sensibilite.gpkg"), quiet = TRUE)
+  sf::st_write(sf::st_sf(ug_id = c("a", "b"), r7_gel_days = c(0, 2), r7_status = c("skipped_no_tmin", "calculated"),
+                         geometry = g), file.path(d, "r7.gpkg"), quiet = TRUE)
+  u <- .unites_regen(d)
+  expect_true(is.na(u$r7_gel_days[1]))
+  expect_equal(u$r7_gel_days[2], 2)
+})
