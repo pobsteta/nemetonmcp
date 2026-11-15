@@ -7,7 +7,7 @@
 # Brief aigora-nemeton du 2026-11-15 (complement « arrete regional MFR »).
 
 .MFR_BFC <- list(
-  arrete = "Arrêté régional MFR Bourgogne-Franche-Comté N°DRAAF/SREAF-2026-09 du 6 juillet 2026, annexe 1.1",
+  arrete = "Arr\u00eat\u00e9 r\u00e9gional MFR Bourgogne-Franche-Comt\u00e9 N\u00b0DRAAF/SREAF-2026-09 du 6 juillet 2026, annexe 1.1",
   url = "https://draaf.bourgogne-franche-comte.agriculture.gouv.fr/IMG/pdf/ap_mfr_bfc_26_raa.pdf",
   objectif = c(
     # Feuillus
