@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.5 (2026-11-15)
+
+- Ajoute l'outil alertes_sanitaires (alertes de dépérissement par UGF) (#30)
+
 # nemetonmcp 2026.11.4 (2026-11-15)
 
 - Journal des durées : une ligne JSON par appel d'outil MCP (#29)
