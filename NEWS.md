@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.8 (2026-11-15)
+
+- regen_essences : climat observé dit, essences gélives écartées (#33)
+
 # nemetonmcp 2026.11.7 (2026-11-15)
 
 - Ajoute l'outil chercher_connaissances (corpus documentaire RAG, avec citations) (#32)
