@@ -15,7 +15,8 @@ nemetonmcp (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_proje
 \code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}), \code{fiche_projet},
 the action plan tools and \code{vue_rasters} (lot 4). A tool of nemetonmcp
 replaces the one of nemetonshiny with the same name (\code{etat_calcul},
-\code{exporter_gpkg}). Errors come back as tool errors (\code{isError}).
+\code{exporter_gpkg}). Errors come back as tool errors (\code{isError}). Each
+call writes one line to the call journal (see \code{\link[=journal_outils]{journal_outils()}}).
 }
 \description{
 MCP tools of nemetonmcp
