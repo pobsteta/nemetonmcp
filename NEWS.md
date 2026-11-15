@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.6 (2026-11-15)
+
+- Ajoute l'outil regen_essences (essences de régénération par UGF) (#31)
+
 # nemetonmcp 2026.11.5 (2026-11-15)
 
 - Ajoute l'outil alertes_sanitaires (alertes de dépérissement par UGF) (#30)
