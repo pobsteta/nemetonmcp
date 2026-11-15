@@ -4,7 +4,7 @@
 \alias{regen_essences}
 \title{Best-suited regeneration species per management unit}
 \usage{
-regen_essences(projet, ug = NULL, top_n = 3, langue = "fr")
+regen_essences(projet, ug = NULL, top_n = 3, aides = TRUE, langue = "fr")
 }
 \arguments{
 \item{projet}{Project id or name.}
@@ -12,6 +12,12 @@ regen_essences(projet, ug = NULL, top_n = 3, langue = "fr")
 \item{ug}{Optional management unit (id or name) to rank alone.}
 
 \item{top_n}{Species per unit (1 to 10, default 3).}
+
+\item{aides}{\code{TRUE} (default): rank only the species eligible as main
+species for state aid in Bourgogne-Franche-Comte (regional MFR decree of
+6 July 2026, annex 1.1); the higher-ranked others are listed in
+\code{hors_objectif_aides}. \code{FALSE}: ecological ranking alone (each species
+still carries \code{aides_bfc}).}
 
 \item{langue}{\code{"fr"} or \code{"en"}.}
 }
