@@ -9,18 +9,18 @@
 
 .TEXTES_SANTE <- list(
   fr = list(
-    forte = "forte", moderee = "modérée",
-    fd_touchee = "FORDEAD : %s ha dépérissants (%s %%)",
-    fd_forte = "FORDEAD : sévérité forte sur %s %%",
+    forte = "forte", moderee = "mod\u00e9r\u00e9e",
+    fd_touchee = "FORDEAD : %s ha d\u00e9p\u00e9rissants (%s %%)",
+    fd_forte = "FORDEAD : s\u00e9v\u00e9rit\u00e9 forte sur %s %%",
     fd_depuis = "depuis %s",
     fast = "FAST %s : alerte tr\u00e8s forte sur %s %%",
-    rec = "RECONFORT : %s %% dépérissant",
-    rec_tres = "RECONFORT : %s %% très dépérissant",
+    rec = "RECONFORT : %s %% d\u00e9p\u00e9rissant",
+    rec_tres = "RECONFORT : %s %% tr\u00e8s d\u00e9p\u00e9rissant",
     coupe = "sol nu (coupe rase) : %s ha",
     aucune = "%s : aucune alerte sanitaire sur %d UGF (%s).",
-    resume = "%s : %d UGF en alerte forte, %d en alerte modérée, sur %d (%s).",
-    pire = " La plus touchée : %s (%s).",
-    sans_couche = "Aucune couche de santé des forêts calculée pour ce projet."),
+    resume = "%s : %d UGF en alerte forte, %d en alerte mod\u00e9r\u00e9e, sur %d (%s).",
+    pire = " La plus touch\u00e9e : %s (%s).",
+    sans_couche = "Aucune couche de sant\u00e9 des for\u00eats calcul\u00e9e pour ce projet."),
   en = list(
     forte = "high", moderee = "moderate",
     fd_touchee = "FORDEAD: %s ha declining (%s %%)",
@@ -201,7 +201,7 @@
            motifs = as.list(niveaux[[k]]$motifs)),
       par_ug[[ids[k]]])
   })
-  libelles <- paste(unique(vapply(sources, function(s) sub(" ·.*$", "", s$libelle), "")), collapse = ", ")
+  libelles <- paste(unique(vapply(sources, function(s) sub(" \u00b7.*$", "", s$libelle), "")), collapse = ", ")
   n_f <- sum(niv == "forte")
   n_m <- sum(niv == "moderee")
   texte <- if (!length(sources)) {
@@ -242,7 +242,7 @@ alertes_sanitaires <- function(projet, langue = "fr") {
     absentes <- cat_r$absentes[intersect(names(cat_r$absentes), c("fordead", "fast", "reconfort"))]
     ugs <- .ugs_rasters(id, chemin, langue)
     if (is.null(ugs) || !nrow(ugs)) {
-      .abort("Projet {.val {id}} : aucune unité de gestion lisible.", "nemetonmcp_ug_introuvable")
+      .abort("Projet {.val {id}} : aucune unit\u00e9 de gestion lisible.", "nemetonmcp_ug_introuvable")
     }
     mesures <- .mesures_sante(cat_r, ugs)
     nom <- tryCatch(nemetonshiny::projet_etat(id)$nom, error = function(e) NULL) %||% id
