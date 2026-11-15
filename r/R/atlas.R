@@ -107,7 +107,20 @@
   props
 }
 
-.entete_atlas <- function(id, s, langue) {
+# Nombre d'UGF du projet, independant des scores : les UGF du projet, a
+# defaut `metadata$ug_count`, a defaut le compte de la synthese. Une synthese
+# sans indicateurs (perimes ou jamais calcules) annonce 0 UGF dans
+# nemetonshiny <= 2026.11.1 (brief victor du 2026-11-15). Pure, testee.
+.n_ugf <- function(projet = NULL, synthese = NULL) {
+  ugs <- projet$ugs
+  if (is.data.frame(ugs) && nrow(ugs)) return(nrow(ugs))
+  n <- suppressWarnings(as.integer(unlist(projet$metadata$ug_count)[1]))
+  if (length(n) && !is.na(n) && n > 0L) return(n)
+  n <- suppressWarnings(as.integer(unlist(synthese$n_ugf)[1]))
+  if (length(n) && !is.na(n)) n else NULL
+}
+
+.entete_atlas <- function(id, s, langue, projet = NULL) {
   list(
     project_id = id,
     name = s$name,
@@ -117,7 +130,7 @@
     confidence = s$confidence,
     updated_at = s$updated_at,
     langue = langue,
-    n_ugf = s$n_ugf,
+    n_ugf = .n_ugf(projet, s),
     n_parcelles = s$n_parcels,
     familles = if (!is.null(s$families)) lapply(seq_len(nrow(s$families)), function(i) {
       list(code = s$families$code[i], nom = s$families$famille[i],
@@ -157,7 +170,7 @@ vue_atlas <- function(projet, langue = "fr", tolerance_m = 1, bruts = FALSE,
     insee <- tryCatch(as.character(lu$projet$parcels$code_insee[1]), error = function(e) NA)
     crs_m <- .crs_metrique(if (is.na(insee)) "" else insee)
 
-    entete <- c(.entete_atlas(id, lu$synthese, langue),
+    entete <- c(.entete_atlas(id, lu$synthese, langue, lu$projet),
                 list(catalogue = .catalogue_familles()))
     fichier <- file.path(.dossier_vues("projets", id), "atlas.geojson")
     tol <- tolerance_m

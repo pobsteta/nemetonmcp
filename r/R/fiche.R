@@ -14,13 +14,21 @@
             note = "Score", forces = "Points forts", faiblesses = "Points faibles",
             prochaines = "Prochaines actions", aucune = "Aucune action \u00e0 venir.",
             calcul = "Calcul", maj = "Indicateurs du", actions = "actions",
-            sur = "sur 100"),
+            sur = "sur 100", a_recalculer = "\u00e0 recalculer", a_calculer = "\u00e0 calculer",
+            perimes = "Scores \u00e0 recalculer : les indicateurs ont \u00e9t\u00e9 mis de c\u00f4t\u00e9%s. Relancer le calcul (lancer_calcul).",
+            jamais = "Scores \u00e0 calculer : aucun indicateur n'a encore \u00e9t\u00e9 calcul\u00e9. Lancer le calcul (lancer_calcul).",
+            motifs = c(ugf = "apr\u00e8s la modification des unit\u00e9s de gestion",
+                       parcelles = "apr\u00e8s la modification des parcelles")),
   en = list(fiche = "Nemeton sheet", score = "Overall score", ndp = "NDP level",
             confiance = "Confidence", ugf = "Units", famille = "Family", code = "Code",
             note = "Score", forces = "Strengths", faiblesses = "Weaknesses",
             prochaines = "Next actions", aucune = "No upcoming action.",
             calcul = "Computation", maj = "Indicators of", actions = "actions",
-            sur = "out of 100")
+            sur = "out of 100", a_recalculer = "to recompute", a_calculer = "to compute",
+            perimes = "Scores to recompute: the indicators were set aside%s. Run the computation again (lancer_calcul).",
+            jamais = "Scores to compute: no indicator has been computed yet. Run the computation (lancer_calcul).",
+            motifs = c(ugf = " after the management units changed",
+                       parcelles = " after the parcels changed"))
 )
 
 # Nombre a la francaise (virgule decimale, espace fine des milliers).
@@ -57,12 +65,17 @@
 #' @param entete Atlas header (`.entete_atlas()`).
 #' @param plan Plan summary (`.resume_plan()`), or `NULL`.
 #' @param surface_ha Total area of the management units.
+#' @param scores `NULL` when the indicators are there; otherwise
+#'   `list(etat = "perimes" | "absents", motif = "ugf" | ...)`: the sheet
+#'   still gives the units and the plan, and says the scores are to compute.
 #' @return list: header, families sorted by score, strengths and weaknesses,
-#'   plan summary, `texte` (one sentence) and `display_report`.
+#'   plan summary, `texte` (one sentence) and `display_report`; without
+#'   scores, `scores_a_calculer = TRUE` and `indicateurs_perimes`.
 #' @noRd
-.fiche <- function(entete, plan = NULL, surface_ha = NA_real_) {
+.fiche <- function(entete, plan = NULL, surface_ha = NA_real_, scores = NULL) {
   langue <- if (identical(entete$langue, "en")) "en" else "fr"
   tx <- .TEXTES_FICHE[[langue]]
+  if (!is.null(scores)) return(.fiche_sans_scores(entete, plan, surface_ha, scores, tx, langue))
   fam <- entete$familles %||% list()
   scores <- vapply(fam, function(f) as.numeric(f$score %||% NA), 0)
   ordre <- order(scores, decreasing = TRUE, na.last = NA)
@@ -130,6 +143,88 @@
          display_report = rapport))
 }
 
+# Lignes du plan d'actions pour le markdown de la fiche.
+.md_plan <- function(plan, tx) {
+  if (is.null(plan)) return(character())
+  lignes <- vapply(plan$prochaines, function(a) {
+    sprintf("- %s : %s, %s (%s)", a$annee %||% "?", a$type %||% "?", a$ug %||% "?", a$statut %||% "?")
+  }, "")
+  c("", sprintf("**%s** (%d %s)", tx$prochaines, plan$n_actions, tx$actions),
+    if (length(lignes)) lignes else tx$aucune)
+}
+
+# Fiche d'un projet sans indicateurs (perimes apres une modification des UGF,
+# ou jamais calcules) : les UGF, la surface et le plan restent vrais, les
+# scores sont annonces « a recalculer », jamais a 0. Pure, testee.
+.fiche_sans_scores <- function(entete, plan, surface_ha, scores, tx, langue) {
+  perimes <- identical(scores$etat, "perimes")
+  motif <- if (perimes && !is.null(scores$motif) && scores$motif %in% names(tx$motifs)) {
+    paste0(if (langue == "fr") " " else "", tx$motifs[[scores$motif]])
+  } else ""
+  phrase <- if (perimes) sprintf(tx$perimes, motif) else tx$jamais
+  etat <- if (perimes) tx$a_recalculer else tx$a_calculer
+  n_ugf <- entete$n_ugf
+  surface_txt <- if (!is.na(surface_ha)) paste0(" \u00b7 ", .nombre(surface_ha, 1, langue), "\u00a0ha")
+  kpis <- list(
+    list(label = tx$score, value = etat),
+    list(label = tx$ndp, value = paste0(entete$ndp_level %||% "\u2014",
+                                        if (!is.null(entete$ndp_name) && !is.na(entete$ndp_name))
+                                          paste0(" \u00b7 ", entete$ndp_name))),
+    list(label = tx$ugf, value = paste0(n_ugf %||% "\u2014", surface_txt %||% ""))
+  )
+  md <- c(sprintf("**%s**", phrase), .md_plan(plan, tx))
+  nom <- entete$name %||% entete$project_id
+  texte <- if (langue == "fr") {
+    paste0(nom, " : ", if (!is.null(n_ugf)) paste0(n_ugf, " UGF") else "UGF inconnues",
+           if (!is.na(surface_ha)) paste0(", ", .nombre(surface_ha, 1, langue), " ha") else "",
+           ". ", phrase)
+  } else {
+    paste0(nom, ": ", if (!is.null(n_ugf)) paste0(n_ugf, " units") else "unknown units",
+           if (!is.na(surface_ha)) paste0(", ", .nombre(surface_ha, 1, langue), " ha") else "",
+           ". ", phrase)
+  }
+  rapport <- list(
+    title = sprintf("%s \u2014 %s", nom, tx$fiche),
+    kpis = kpis,
+    markdown = paste(md, collapse = "\n")
+  )
+  c(entete[setdiff(names(entete), c("familles", "global_score", "confidence"))],
+    list(global_score = NULL,
+         surface_ha = if (is.na(surface_ha)) NULL else round(surface_ha, 2),
+         familles = list(), forces = character(), faiblesses = character(),
+         scores_a_calculer = TRUE, indicateurs_perimes = perimes,
+         motif_perime = if (perimes) scores$motif,
+         plan = plan, texte = texte, display_report = rapport))
+}
+
+# Etat des scores d'un projet sans indicateurs : « perimes » quand nemetonshiny
+# a mis des indicateurs de cote (`metadata$indicateurs_perimes`, le plus
+# recent en tete ou en queue selon la version), « absents » sinon. Pure, testee.
+.etat_scores <- function(metadata) {
+  arch <- metadata$indicateurs_perimes
+  if (is.null(arch) || !length(arch)) return(list(etat = "absents"))
+  if (is.data.frame(arch)) arch <- lapply(seq_len(nrow(arch)), function(i) as.list(arch[i, , drop = FALSE]))
+  if (!is.null(names(arch)) && !is.null(arch$motif)) arch <- list(arch)
+  dates <- vapply(arch, function(a) as.character(unlist(a$date %||% a$le %||% NA)[1]), "")
+  i <- if (all(is.na(dates))) length(arch) else which.max(rank(dates, na.last = FALSE, ties.method = "last"))
+  list(etat = "perimes", motif = as.character(unlist(arch[[i]]$motif %||% NA)[1]))
+}
+
+# Surface des UGF ou, a defaut, des parcelles, en hectares.
+.surface_projet <- function(familles = NULL, projet = NULL) {
+  depuis <- function(x) {
+    if (is.null(x) || !nrow(x)) return(NA_real_)
+    s <- if (inherits(x, "sf")) sf::st_drop_geometry(x) else x
+    col <- intersect(c("surface_m2", "surface_sig_m2", "contenance"), names(s))[1]
+    if (!is.na(col)) return(sum(as.numeric(s[[col]]), na.rm = TRUE) / 1e4)
+    if (inherits(x, "sf")) return(as.numeric(sum(sf::st_area(x))) / 1e4)
+    NA_real_
+  }
+  v <- tryCatch(depuis(familles), error = function(e) NA_real_)
+  if (is.na(v)) v <- tryCatch(depuis(projet$parcels), error = function(e) NA_real_)
+  v
+}
+
 # Cle de la fiche en cache : elle change quand les indicateurs, le plan ou
 # la version du connecteur changent.
 .cle_fiche <- function(id, langue) {
@@ -137,6 +232,7 @@
   mtime <- function(f) if (file.exists(f)) format(as.numeric(file.mtime(f)), digits = 15) else "0"
   paste(id, langue, mtime(file.path(chemin, "data", "indicators.parquet")),
         mtime(file.path(chemin, "data", "action_plan.json")),
+        mtime(file.path(chemin, "data", "ugs.json")),
         as.character(utils::packageVersion("nemetonmcp")), sep = "|")
 }
 
@@ -148,7 +244,11 @@
 #' action plan, the state of the computation, a one-sentence `texte`, and a
 #' `display_report` block (title, KPIs, bar chart, table, markdown) ready to
 #' pass to VICTOR's tool. The sheet is cached in `fiche.json`, in the
-#' project's view folder, until the indicators or the plan change.
+#' project's view folder, until the indicators, the units or the plan change.
+#' Without indicators (set aside after the units changed, or never computed)
+#' the sheet still gives the units, the area and the plan, with
+#' `scores_a_calculer = TRUE`, `indicateurs_perimes` and a text saying the
+#' scores are to (re)compute: never a score of 0 nor « 0 UGF ».
 #'
 #' @param projet Project id or name.
 #' @param langue `"fr"` or `"en"`.
@@ -178,16 +278,8 @@ fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
     depuis_cache <- !is.null(fiche)
     if (!depuis_cache) {
       lu <- .lire_projet(id, langue)
-      if (is.null(lu$familles) || !nrow(lu$familles)) {
-        .abort(c("Projet {.val {id}} : aucun indicateur calcul\u00e9.",
-                 i = "Lancer {.code lancer_calcul} puis suivre {.code etat_calcul}."),
-               "nemetonshiny_sans_indicateurs")
-      }
-      surface <- tryCatch({
-        s <- sf::st_drop_geometry(lu$familles)
-        col <- intersect(c("surface_m2", "surface_sig_m2"), names(s))[1]
-        if (is.na(col)) NA_real_ else sum(as.numeric(s[[col]]), na.rm = TRUE) / 1e4
-      }, error = function(e) NA_real_)
+      sans_scores <- is.null(lu$familles) || !nrow(lu$familles)
+      surface <- .surface_projet(if (!sans_scores) lu$familles, lu$projet)
       plan <- tryCatch({
         p <- .ns("load_action_plan")(id)
         if (!is.null(p)) {
@@ -199,7 +291,9 @@ fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
           .resume_plan(lapply(p$actions %||% list(), .action_pour_vue, annee_base = base, labels = labels))
         }
       }, error = function(e) NULL)
-      fiche <- c(.fiche(.entete_atlas(id, lu$synthese, langue), plan, surface), list(cle = cle))
+      scores <- if (sans_scores) .etat_scores(lu$projet$metadata)
+      fiche <- c(.fiche(.entete_atlas(id, lu$synthese, langue, lu$projet), plan, surface, scores),
+                 list(cle = cle))
       writeLines(.json(fiche), fichier, useBytes = TRUE)
     }
     fiche$cle <- NULL
