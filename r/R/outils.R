@@ -46,7 +46,8 @@
 #'   `vue_atlas`, `contexte_carto`, `detail_indicateur`), `fiche_projet`,
 #'   the action plan tools and `vue_rasters` (lot 4). A tool of nemetonmcp
 #'   replaces the one of nemetonshiny with the same name (`etat_calcul`,
-#'   `exporter_gpkg`). Errors come back as tool errors (`isError`).
+#'   `exporter_gpkg`). Errors come back as tool errors (`isError`). Each
+#'   call writes one line to the call journal (see [journal_outils()]).
 #' @export
 outils_mcp <- function() {
   t <- ellmer::type_string
@@ -152,7 +153,7 @@ outils_mcp <- function() {
       "Write the Marculus field bundle of a project (zip: one GeoPackage per marking action - thinning, clear-cut, respacing, observation - and the .marsync of their contexts) into its exports folder. The plan is not changed.",
       list(projet = projet_arg))
   )
-  .fusionner_outils(existants, nouveaux)
+  lapply(.fusionner_outils(existants, nouveaux), .journaliser)
 }
 
 # Schema d'une action du plan, pour ajouter_action et modifier_action : tous

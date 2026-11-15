@@ -282,6 +282,7 @@ config_distant <- function(url = .env_mcp("URL"),
 .entrer_contexte <- function(utilisateur, config) {
   nouvelles <- list(
     nemetonmcp.utilisateur = utilisateur$nom %||% utilisateur$sub,
+    nemetonmcp.transport = "http",
     nemetonmcp.peut_ecrire = length(intersect(utilisateur$roles, config$roles_ecriture)) > 0)
   if (identical(config$isolation, "utilisateur")) {
     dossier <- gsub("[^A-Za-z0-9_-]", "_", utilisateur$sub)
