@@ -43,7 +43,7 @@ nemeton.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("pobsteta/nemetonshiny")
+remotes::install_github("pobsteta/nemetonshiny@*release")  # >= 2026.11.1
 remotes::install_github("pobsteta/nemetonmcp", subdir = "r")
 install.packages(c("mcptools", "happign"))  # happign : repli cadastre, BD Forêt, BD TOPO
 ```

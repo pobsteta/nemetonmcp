@@ -73,8 +73,6 @@ test_that("les outils ont des noms uniques ; les notres remplacent les homonymes
   expect_equal(sort(.noms_outils(fusion)), c("a", "b", "c", "d"))
   expect_false(fusion[[which(.noms_outils(fusion) == "b")]]@annotations$read_only_hint)
 
-  skip_if_not(exists(".mcp_vers_outil", asNamespace("nemetonshiny"), inherits = FALSE),
-              "nemetonshiny sans .mcp_vers_outil (avant 2026.11.1)")
   o <- outils_mcp()
   noms <- .noms_outils(o)
   expect_false(anyDuplicated(noms) > 0L)
@@ -107,17 +105,17 @@ test_that(".environnement_serveur pose l'heure de Paris et une locale UTF-8", {
 # garanti : le test le refuse. La liste change avec un brief de nemetonshiny.
 CONTRAT_NEMETONSHINY <- c(
   "load_action_plan", "save_action_plan", "add_action_to_plan", "update_action_in_plan",
-  "delete_action_from_plan", "get_action_by_id", "find_action_index", "action_plan_annee_base",
+  "delete_action_from_plan", "get_action_by_id", "action_plan_annee_base",
   "load_ug_comments", "ACTION_PLAN_TYPES", "ACTION_PLAN_STATUTS", "ACTION_PLAN_PRIORITES",
   "ACTION_PLAN_FAMILY_CODES", "ACTION_PLAN_TRANSITIONS",
-  "load_project", "load_parcels", "get_project_path", "get_projects_root", "ug_build_sf", "lock_status",
+  "load_project", "load_parcels", "get_project_path", "get_projects_root", "ug_build_sf",
   "get_commune_geometry", "save_commune_geometry", "get_departments",
   "mcp_tools", "mcp_etat_calcul", "mcp_exporter_gpkg", ".mcp_resolve_project", ".mcp_vers_outil",
   ".mcp_garde_ecriture", ".mcp_jeton_emettre", ".mcp_jeton_consommer",
   "get_expert_profiles", "marculus_export_bundle", "MARCULUS_CONTEXT_ACTION_TYPES", "INDICATOR_FAMILIES")
 
 test_that("nemetonmcp n'appelle aucun objet interne hors contrat", {
-  expect_length(CONTRAT_NEMETONSHINY, 35L)
+  expect_length(CONTRAT_NEMETONSHINY, 33L)
   dossier <- testthat::test_path("..", "..", "R")
   sources <- list.files(dossier, pattern = "\\.R$", full.names = TRUE)
   # Paquet installe (R CMD check, couverture) : R/ ne contient pas les sources.
@@ -126,5 +124,6 @@ test_that("nemetonmcp n'appelle aucun objet interne hors contrat", {
   appels <- unique(unlist(regmatches(code, gregexpr('\\.ns\\("[^"]+"\\)', code))))
   appels <- sub('^\\.ns\\("(.*)"\\)$', "\\1", appels)
   expect_true(length(appels) > 0)
-  expect_equal(setdiff(appels, CONTRAT_NEMETONSHINY), character())
+  # Egalite stricte, comme le test de nemetonshiny (contrat a 33 objets, v2026.11.1).
+  expect_setequal(appels, CONTRAT_NEMETONSHINY)
 })
