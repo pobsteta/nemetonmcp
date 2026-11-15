@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.7 (2026-11-15)
+
+- Ajoute l'outil chercher_connaissances (corpus documentaire RAG, avec citations) (#32)
+
 # nemetonmcp 2026.11.6 (2026-11-15)
 
 - Ajoute l'outil regen_essences (essences de régénération par UGF) (#31)
