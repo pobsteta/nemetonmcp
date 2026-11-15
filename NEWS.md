@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.9 (2026-11-15)
+
+- regen_essences : essences éligibles aux aides de l'État en BFC (#34)
+
 # nemetonmcp 2026.11.8 (2026-11-15)
 
 - regen_essences : climat observé dit, essences gélives écartées (#33)
