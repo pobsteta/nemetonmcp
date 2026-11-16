@@ -1,0 +1,14 @@
+{
+  "enabledPlugins": {
+    "nemeton@nemetonmcp": true,
+    "imperatrice@pobsteta": true
+  },
+  "extraKnownMarketplaces": {
+    "pobsteta": {
+      "source": {
+        "source": "github",
+        "repo": "pobsteta/methode-imperatrice"
+      }
+    }
+  }
+}

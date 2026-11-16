@@ -1,0 +1,1 @@
+{ [ -d node_modules ] || npm install --no-audit --no-fund; } && npx playwright install chromium && npm test && Rscript -e 'testthat::test_local("r", reporter = "summary", stop_on_failure = TRUE)'
