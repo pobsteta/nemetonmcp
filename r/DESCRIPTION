@@ -17,7 +17,7 @@ URL: https://github.com/pobsteta/nemetonmcp
 BugReports: https://github.com/pobsteta/nemetonmcp/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
-Imports: nemetonshiny (>= 2026.11.1), nemeton (>= 1.2.0), sf, jsonlite, httr2,
+Imports: nemetonshiny (>= 2026.11.2), nemeton (>= 2026.11.30), sf, jsonlite, httr2,
     cli, ellmer, rlang, openssl, jose, httpuv, zip, terra, png, S7
 Suggests: mcptools (>= 1.0.3), happign, testthat (>= 3.0.0), withr, RSQLite
 Remotes: pobsteta/nemetonshiny@*release, pobsteta/nemeton@*release

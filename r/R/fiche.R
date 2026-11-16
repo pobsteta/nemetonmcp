@@ -199,10 +199,15 @@
 
 # Etat des scores d'un projet sans indicateurs : « perimes » quand nemetonshiny
 # a mis des indicateurs de cote (`metadata$indicateurs_perimes`, le plus
-# recent en tete ou en queue selon la version), « absents » sinon. Pure, testee.
-.etat_scores <- function(metadata) {
+# recent en tete ou en queue selon la version) ou quand la synthese le dit
+# (`synthese$indicateurs_perimes`, nemetonshiny >= 2026.11.2), « absents »
+# sinon. Pure, testee.
+.etat_scores <- function(metadata, synthese = NULL) {
   arch <- metadata$indicateurs_perimes
-  if (is.null(arch) || !length(arch)) return(list(etat = "absents"))
+  if (is.null(arch) || !length(arch)) {
+    return(if (isTRUE(synthese$indicateurs_perimes)) list(etat = "perimes", motif = NA_character_)
+           else list(etat = "absents"))
+  }
   if (is.data.frame(arch)) arch <- lapply(seq_len(nrow(arch)), function(i) as.list(arch[i, , drop = FALSE]))
   if (!is.null(names(arch)) && !is.null(arch$motif)) arch <- list(arch)
   dates <- vapply(arch, function(a) as.character(unlist(a$date %||% a$le %||% NA)[1]), "")
@@ -278,7 +283,9 @@ fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
     depuis_cache <- !is.null(fiche)
     if (!depuis_cache) {
       lu <- .lire_projet(id, langue)
-      sans_scores <- is.null(lu$familles) || !nrow(lu$familles)
+      # Scores perimes selon la synthese : la fiche dit « a recalculer » meme
+      # si des familles restent lisibles.
+      sans_scores <- is.null(lu$familles) || !nrow(lu$familles) || isTRUE(lu$synthese$indicateurs_perimes)
       surface <- .surface_projet(if (!sans_scores) lu$familles, lu$projet)
       plan <- tryCatch({
         p <- .ns("load_action_plan")(id)
@@ -291,7 +298,7 @@ fiche_projet <- function(projet, langue = "fr", actualiser = FALSE) {
           .resume_plan(lapply(p$actions %||% list(), .action_pour_vue, annee_base = base, labels = labels))
         }
       }, error = function(e) NULL)
-      scores <- if (sans_scores) .etat_scores(lu$projet$metadata)
+      scores <- if (sans_scores) .etat_scores(lu$projet$metadata, lu$synthese)
       fiche <- c(.fiche(.entete_atlas(id, lu$synthese, langue, lu$projet), plan, surface, scores),
                  list(cle = cle))
       writeLines(.json(fiche), fichier, useBytes = TRUE)
