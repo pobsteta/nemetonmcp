@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.11 (2026-11-16)
+
+- chore(claude): plugin imperatrice et commande de tests versionnée (#36)
+
 # nemetonmcp 2026.11.10 (2026-11-16)
 
 - nemetonshiny 2026.11.2 : versions minimales, synthese$indicateurs_perimes (#35)
