@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.10 (2026-11-16)
+
+- nemetonshiny 2026.11.2 : versions minimales, synthese$indicateurs_perimes (#35)
+
 # nemetonmcp 2026.11.9 (2026-11-15)
 
 - regen_essences : essences éligibles aux aides de l'État en BFC (#34)
