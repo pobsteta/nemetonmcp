@@ -310,3 +310,10 @@ test_that(".surface_projet retombe sur les parcelles", {
   expect_equal(.surface_projet(fam, list(parcels = parcelles)), 2.2)
   expect_true(is.na(.surface_projet(NULL, NULL)))
 })
+
+test_that(".etat_scores suit synthese$indicateurs_perimes (nemetonshiny >= 2026.11.2)", {
+  e <- .etat_scores(list(), list(indicateurs_perimes = TRUE))
+  expect_equal(e$etat, "perimes")
+  expect_true(is.na(e$motif))
+  expect_equal(.etat_scores(list(), list(indicateurs_perimes = FALSE))$etat, "absents")
+})
