@@ -295,16 +295,16 @@
   job <- .froid_job(dossier)
   if (.froid_actif(job)) {
     depuis <- job$lance_a
-    .abort(c("Froid d'hiver : minimum décennal en cours de calcul (depuis {depuis}), classement non rendu.",
-             i = "Réessayer dans quelques minutes."), "nemetonmcp_froid_en_cours")
+    .abort(c("Froid d'hiver : minimum d\u00e9cennal en cours de calcul (depuis {depuis}), classement non rendu.",
+             i = "R\u00e9essayer dans quelques minutes."), "nemetonmcp_froid_en_cours")
   }
   if (identical(job$statut, "echec")) {
     cause <- job$erreur %||% "cause inconnue"
     .abort(c("Froid d'hiver indisponible, classement non rendu.", x = "{cause}",
-             i = "Relancer lancer_froid_hiver quand E-OBS répond."), "nemetonmcp_froid_indisponible")
+             i = "Relancer lancer_froid_hiver quand E-OBS r\u00e9pond."), "nemetonmcp_froid_indisponible")
   }
-  .abort(c("Froid d'hiver non calculé pour ce projet, classement non rendu.",
-           i = "Lancer lancer_froid_hiver (tâche de fond, environ 15 minutes la première fois), puis réessayer."),
+  .abort(c("Froid d'hiver non calcul\u00e9 pour ce projet, classement non rendu.",
+           i = "Lancer lancer_froid_hiver (t\u00e2che de fond, environ 15 minutes la premi\u00e8re fois), puis r\u00e9essayer."),
          "nemetonmcp_froid_absent")
 }
 
@@ -330,7 +330,7 @@
   }
   v <- if ("tmin_decennale" %in% names(r)) as.numeric(r$tmin_decennale) else rep(NA_real_, length(ids))
   if (anyNA(v)) {
-    cause <- paste(c("minimum décennal incomplet (E-OBS indisponible ?)", utils::head(avertissements, 2)), collapse = " : ")
+    cause <- paste(c("minimum d\u00e9cennal incomplet (E-OBS indisponible ?)", utils::head(avertissements, 2)), collapse = " : ")
     return(invisible(maj(statut = "echec", erreur = cause, fin_a = .froid_maintenant())))
   }
   saveRDS(data.frame(ug_id = ids, tmin_decennale = v,
@@ -355,12 +355,12 @@
 # (injectable), testee.
 .froid_lancer <- function(id, dossier, ids, spawn = .froid_spawn) {
   if (!is.null(.froid_lire(dossier, ids))) {
-    return(list(projet = id, statut = "termine", message = "Minimum décennal déjà calculé : regen_essences peut classer."))
+    return(list(projet = id, statut = "termine", message = "Minimum d\u00e9cennal d\u00e9j\u00e0 calcul\u00e9 : regen_essences peut classer."))
   }
   job <- .froid_job(dossier)
   if (.froid_actif(job)) {
     return(list(projet = id, job_id = job$job_id, statut = "en_cours", lance_a = job$lance_a, log = job$log,
-                message = "Calcul déjà en cours ; réessayer regen_essences dans quelques minutes."))
+                message = "Calcul d\u00e9j\u00e0 en cours ; r\u00e9essayer regen_essences dans quelques minutes."))
   }
   log <- file.path(dossier, "tmin_decennale.log")
   job <- list(job_id = paste0(format(Sys.time(), "%Y%m%d%H%M%S"), "-", paste0(sample(letters, 4), collapse = "")),
@@ -371,7 +371,7 @@
     stop(e)
   })
   list(projet = id, job_id = job$job_id, statut = "en_cours", log = log,
-       message = "Minimum décennal lancé en tâche de fond (environ 15 minutes la première fois) ; réessayer regen_essences ensuite, qui dit où en est le calcul.")
+       message = "Minimum d\u00e9cennal lanc\u00e9 en t\u00e2che de fond (environ 15 minutes la premi\u00e8re fois) ; r\u00e9essayer regen_essences ensuite, qui dit o\u00f9 en est le calcul.")
 }
 
 #' Start the winter-cold computation of a project (background job)
@@ -396,8 +396,8 @@ lancer_froid_hiver <- function(projet, langue = "fr") {
     dossier <- file.path(chemin, "cache", "regeneration")
     u <- .unites_regen(dossier)
     if (is.null(u) || !nrow(u)) {
-      .abort(c("Projet {.val {id}} : aucune analyse de régénération en cache.",
-               i = "La lancer dans nemetonshiny, onglet Régénération (url_app)."),
+      .abort(c("Projet {.val {id}} : aucune analyse de r\u00e9g\u00e9n\u00e9ration en cache.",
+               i = "La lancer dans nemetonshiny, onglet R\u00e9g\u00e9n\u00e9ration (url_app)."),
              "nemetonmcp_regeneration_absente")
     }
     .froid_lancer(id, dossier, as.character(u$ug_id))
