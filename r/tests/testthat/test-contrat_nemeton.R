@@ -120,9 +120,11 @@ test_that("regen_rank_species() rend le classement long aux colonnes lues", {
 
 test_that("nemetonmcp n'appelle aucune fonction de nemeton hors contrat", {
   dir <- testthat::test_path("..", "..", "R")
-  skip_if_not(dir.exists(dir), "sources R absentes (paquet installe)")
+  fichiers <- list.files(dir, pattern = "\\.R$", full.names = TRUE)
+  # Paquet installe (couverture, R CMD check) : r/R/ ne tient plus de .R.
+  skip_if(length(fichiers) == 0L, "sources R absentes (paquet installe)")
   appelles <- unique(unlist(lapply(
-    list.files(dir, pattern = "\\.R$", full.names = TRUE), function(f) {
+    fichiers, function(f) {
       lignes <- readLines(f, encoding = "UTF-8", warn = FALSE)
       lignes <- lignes[!grepl("^\\s*#", lignes)]
       m <- regmatches(lignes, gregexpr("\\bnemeton:::?[A-Za-z_.][A-Za-z0-9_.]*", lignes))
