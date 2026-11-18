@@ -10,7 +10,7 @@
 #   -----------------  -------------------------------------------  ----------------------------
 #   R/atlas.R          get_famille_col, list_indicators,            colonne d'une famille ;
 #                      normalize_indicator                          codes d'indicateurs (character)
-#   R/regeneration.R   regen_rank_species, european_species_        classement long (9 colonnes) ;
+#   R/regeneration.R   regen_rank_species, european_species_        classement long (8 colonnes) ;
 #                      tolerances                                   traits (code, frost_winter_min_c,
 #                                                                   thermophily)
 #   R/connaissances.R  db_connect, db_disconnect,                   -
@@ -18,8 +18,10 @@
 #   R/rasters.R        read_fordead_dieback_mask,                   manifeste RECONFORT (colonnes
 #                      read_fordead_layer, reconfort_cache_manifest ci-dessous)
 #
-# Les tests de nemetonmcp simulent en outre `nemeton:::.mistral_embed`
-# (test-connaissances.R) : objet interne, verrouille ci-dessous.
+# Les tests de nemetonmcp (test-connaissances.R) utilisent en outre
+# `nemeton::enable_rag()` et `nemeton::ingest_knowledge_document()` (arguments
+# verrouilles) et simulent `nemeton:::.mistral_embed` (objet interne, existence
+# verrouillee).
 #
 # Ce test verrouille ces objets : une fonction renommee, retiree, ou dont les
 # arguments changent fait echouer la CI ici, pas chez l'utilisateur. Changer
@@ -28,7 +30,10 @@
 # `nemeton` absent des tables.
 #
 # `nemeton` est dans `Imports` : la CI l'installe (job `r` de ci.yml), donc ce
-# test ne saute jamais. Aucun skip_*.
+# test ne saute jamais sur `nemeton`. Seule exception : la relecture des
+# sources (dernier test) saute sous covr (variable R_COVR), qui execute les
+# tests depuis le paquet installe, sans r/R/*.R. Hors covr, un r/R/ deplace
+# ou vide fait echouer le test.
 
 # Fonctions : noms des arguments, dans l'ordre (formals()).
 .contrat_nemeton_fonctions <- list(
@@ -50,6 +55,18 @@
                                   "apply_zone_mask", "mask_polygon"),
   reconfort_cache_manifest    = c("cache_dir", "zone_id", "run_id", "include_range")
 )
+
+# Fonctions utilisees par les tests de nemetonmcp seulement (signature).
+.contrat_nemeton_fonctions_tests <- list(
+  enable_rag                = c("con"),
+  ingest_knowledge_document = c("con", "source", "metadata", "chunk_size", "chunk_overlap",
+                                "embed_provider", "api_key")
+)
+
+# Colonnes du manifeste RECONFORT lues par R/rasters.R (l'appel est dans un
+# tryCatch : une casse serait silencieuse, d'ou ce verrou).
+.contrat_nemeton_colonnes_manifeste <- c("path", "categorical", "vmin", "vmax", "palette",
+                                         "reverse", "role", "id")
 
 # Objet interne simule par les tests de nemetonmcp (existence seulement).
 .contrat_nemeton_internes <- c(".mistral_embed")
@@ -75,6 +92,21 @@ test_that("chaque fonction de nemeton utilisee existe, exportee, avec les memes 
     expect_identical(names(formals(obj)), .contrat_nemeton_fonctions[[nom]],
                      info = paste("signature changee :", nom))
   }
+})
+
+test_that("les fonctions utilisees par les tests existent avec les memes arguments", {
+  for (nom in names(.contrat_nemeton_fonctions_tests)) {
+    expect_true(nom %in% getNamespaceExports("nemeton"), info = paste("non exportee :", nom))
+    expect_identical(names(formals(getExportedValue("nemeton", nom))),
+                     .contrat_nemeton_fonctions_tests[[nom]], info = paste("signature changee :", nom))
+  }
+})
+
+test_that("reconfort_cache_manifest() porte les colonnes lues par le rendu des rasters", {
+  d <- withr::local_tempdir()
+  man <- nemeton::reconfort_cache_manifest(d, zone_id = "z")
+  expect_s3_class(man, "data.frame")
+  expect_true(all(.contrat_nemeton_colonnes_manifeste %in% names(man)))
 })
 
 test_that("les objets internes simules par les tests existent", {
@@ -121,8 +153,9 @@ test_that("regen_rank_species() rend le classement long aux colonnes lues", {
 test_that("nemetonmcp n'appelle aucune fonction de nemeton hors contrat", {
   dir <- testthat::test_path("..", "..", "R")
   fichiers <- list.files(dir, pattern = "\\.R$", full.names = TRUE)
-  # Paquet installe (couverture, R CMD check) : r/R/ ne tient plus de .R.
-  skip_if(length(fichiers) == 0L, "sources R absentes (paquet installe)")
+  # Sous covr, r/R/ ne tient plus de .R ; ailleurs, son absence est un echec.
+  skip_if(length(fichiers) == 0L && nzchar(Sys.getenv("R_COVR")),
+          "sous covr : tests lances depuis le paquet installe")
   appelles <- unique(unlist(lapply(
     fichiers, function(f) {
       lignes <- readLines(f, encoding = "UTF-8", warn = FALSE)
