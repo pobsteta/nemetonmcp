@@ -12,7 +12,7 @@ A list of \code{ellmer::tool()} definitions: the tools of nemetonshiny
 \code{annuler_calcul}, \code{generer_rapport}, \code{exporter_gpkg}, \code{url_app},
 \code{appliquer_ugf}, \code{croiser_onf}, with their own annotations) and those of
 nemetonmcp (\code{chercher_commune}, \code{parcelles_commune}, \code{creer_projet},
-\code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}), \code{fiche_projet},
+\code{vue_atlas}, \code{contexte_carto}, \code{detail_indicateur}), \code{lancer_froid_hiver}, \code{fiche_projet},
 the action plan tools and \code{vue_rasters} (lot 4). A tool of nemetonmcp
 replaces the one of nemetonshiny with the same name (\code{etat_calcul},
 \code{exporter_gpkg}). Errors come back as tool errors (\code{isError}). Each

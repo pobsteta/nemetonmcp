@@ -34,7 +34,6 @@
     methode_aides = " Seules les essences \u00e9ligibles en essence objectif aux aides de l'\u00c9tat en Bourgogne-Franche-Comt\u00e9 sont class\u00e9es (arr\u00eat\u00e9 r\u00e9gional MFR du 6 juillet 2026, annexe 1.1) ; aides = FALSE pour le classement \u00e9cologique seul.",
     facteurs = c(chaleur = "la chaleur", vpd = "la s\u00e9cheresse de l'air", secheresse = "la s\u00e9cheresse",
                  gel = "le gel tardif", ombre = "l'ombre", froid_hiver = "le froid d'hiver"),
-    froid_absent = " Froid d'hiver non appliqu\u00e9 : le minimum d\u00e9cennal n'a pas pu \u00eatre calcul\u00e9 (E-OBS indisponible), les essences g\u00e9lives ne sont pas \u00e9cart\u00e9es.",
     avert_d_tmax = "d_tmax est n\u00e9gatif dans %d UGF : chaque cat\u00e9gorie d'ann\u00e9e ne repose que sur une ann\u00e9e simul\u00e9e, la surchauffe de l'ann\u00e9e \u00ab moyenne \u00bb peut d\u00e9passer celle de l'ann\u00e9e \u00ab caniculaire \u00bb ; ne pas y lire un effet du couvert.",
     avert_gel = "Gel tardif (r7_gel_days) fond\u00e9 sur %d printemps seulement : indicatif, fragile.",
     avert_confiance = "`confiance` mesure la fiabilit\u00e9 des traits de l'essence (sources de la table du c\u0153ur), pas la robustesse de la station.",
@@ -60,7 +59,6 @@
     statuts_aides = list(accompagnement = "companion species only", hors_liste = "not listed"),
     methode_aides = " Only species eligible as main species for state aid in Bourgogne-Franche-Comte are ranked (regional MFR decree of 6 July 2026, annex 1.1); aides = FALSE for the ecological ranking alone.",
     facteurs = c(chaleur = "heat", vpd = "air dryness", secheresse = "drought", gel = "late frost", ombre = "shade", froid_hiver = "winter cold"),
-    froid_absent = " Winter cold not applied: the ten-year minimum could not be computed (E-OBS unavailable), frost-sensitive species are not set aside.",
     avert_d_tmax = "d_tmax is negative in %d units: each year category rests on a single simulated year, so the 'average' year's overheating can exceed the 'heatwave' year's; do not read it as a canopy effect.",
     avert_gel = "Late frost (r7_gel_days) rests on %d spring(s) only: indicative, fragile.",
     avert_confiance = "`confiance` measures the reliability of the species traits (sources of the core table), not the robustness of the site.",
@@ -101,15 +99,19 @@
   u
 }
 
-# Thermophilie (echelle 1-9 du coeur) a partir de laquelle une essence est
-# mediterraneenne. Le froid d'hiver n'a plus de seuil local : c'est le minimum
-# decennal du coeur (`nemeton::regen_tmin_decennale()`, nemeton 2026.11.32).
+# Seuil historique de `climat.seuil_froid_c` (DEPRECIE, informatif : le plus
+# froid de cette valeur et du minimum ERA5 observe, garde pour ne pas casser la
+# sortie JSON). Le filtre du froid est le minimum decennal du coeur
+# (`nemeton::regen_tmin_decennale()`, nemeton 2026.11.32). Thermophilie
+# (echelle 1-9 du coeur) a partir de laquelle une essence est mediterraneenne.
+.FROID_REFERENCE_C <- -15
 .THERMOPHILIE_MEDITERRANEENNE <- 8
 
 # Base climatique de la station, lue dans le cache de regeneration : annees
 # d'ete rejouees par microclimf (cache_AAAA_*_tmax.tif) et celle de l'ete
-# chaud (la plus proche de tmax_moyenne + d_tmax), annees du gel tardif
-# (meteoland).
+# chaud (la plus proche de tmax_moyenne + d_tmax), minimum d'hiver ERA5
+# (mois 11 a 3 des fichiers era5_*_M.nc, informatif : DEPRECIE, le filtre du
+# froid est le minimum decennal du coeur), annees du gel tardif (meteoland).
 .climat_regen <- function(dossier, u) {
   micro <- file.path(dossier, "microclimf")
   f <- list.files(micro, pattern = "^cache_[0-9]{4}_.*_tmax\\.tif$", full.names = TRUE)
@@ -126,21 +128,34 @@
     }, error = function(e) NA_real_), numeric(1))
     if (any(is.finite(moy))) chaud <- annees[which.min(abs(moy - cible))]
   } else if (length(annees) == 1L) chaud <- annees
+  nc <- list.files(micro, pattern = "^era5_.*_[0-9]{4}_[0-9]{4}_[0-9]{1,2}\\.nc$", full.names = TRUE)
+  mois <- as.integer(sub("^.*_([0-9]{1,2})\\.nc$", "\\1", basename(nc)))
+  hiver <- nc[mois %in% c(11L, 12L, 1L, 2L, 3L)]
+  tmin <- suppressWarnings(min(vapply(hiver, function(x) tryCatch({
+    r <- terra::rast(x)
+    v <- terra::values(r[[grepl("^t2m", names(r))]])
+    m <- min(v, na.rm = TRUE)
+    if (m > 100) m - 273.15 else m
+  }, error = function(e) NA_real_), numeric(1)), na.rm = TRUE))
+  ans_hiver <- sort(unique(as.integer(sub("^.*_([0-9]{4})_[0-9]{4}_[0-9]{1,2}\\.nc$", "\\1", basename(hiver)))))
   g <- list.files(file.path(dossier, "meteoland"), pattern = "^tmin_.*__y[0-9-]+__doy[0-9]+-[0-9]+\\.tif$")
   gel <- if (length(g)) as.integer(strsplit(sub("^.*__y([0-9-]+)__doy.*$", "\\1", g[1]), "-")[[1]]) else integer()
   list(nature = "observe", projection = FALSE,
        annees_ete = annees, annee_canicule = if (is.na(chaud)) NULL else chaud,
-       annees_gel_tardif = gel)
+       tmin_hiver_c = if (is.finite(tmin)) round(tmin, 1) else NULL,
+       annees_hiver = ans_hiver, annees_gel_tardif = gel)
 }
 
 #' Winter-cold filter on a long ranking (pure function, tested)
 #'
-#' @param rang Long ranking of all species (`nemeton::regen_rank_species()`).
 #' @param traits Species traits (`code`, `frost_winter_min_c`, `thermophily`).
+#' @param rang Long ranking of all species, WITHOUT the cold filter (so the
+#'   suitability of the set-aside species is known).
 #' @param seuil Winter minimum (degrees C) a species must stand; `NULL` when
-#'   the core already filtered (`exclus`).
-#' @param exclus Pairs excluded by the core filter (`attr(, "exclus_froid")`
-#'   of `regen_rank_species()`: `ug_id`, `species_code`), reported as `ecartees`.
+#'   the core decides (`exclus`).
+#' @param exclus Pairs the core's cold filter excludes
+#'   (`attr(regen_rank_species(units with tmin_decennale), "exclus_froid")`:
+#'   `ug_id`, `species_code`); those species are reported as `ecartees`.
 #' @param top_n Species kept per unit.
 #' @param aides Keep only species eligible as main ("objectif") species for
 #'   public aid in Bourgogne-Franche-Comte (`.MFR_BFC`).
@@ -153,7 +168,9 @@
   j <- match(rang$species_code, traits$code)
   rang$tenue_froid_c <- suppressWarnings(as.numeric(traits$frost_winter_min_c[j]))
   rang$thermophilie <- suppressWarnings(as.numeric(traits$thermophily[j]))
-  rang$gelive <- if (is.null(seuil)) FALSE else !is.na(rang$tenue_froid_c) & rang$tenue_froid_c > seuil
+  rang$gelive <- (if (is.null(seuil)) FALSE else !is.na(rang$tenue_froid_c) & rang$tenue_froid_c > seuil) |
+    (if (is.null(exclus) || !nrow(exclus)) FALSE else
+       paste(rang$ug_id, rang$species_code) %in% paste(exclus$ug_id, exclus$species_code))
   rang$aides_bfc <- .statut_mfr(rang$species_code)
   rang$hors_aide <- isTRUE(aides) & rang$aides_bfc != "objectif"
   vide <- rang[0, , drop = FALSE]
@@ -167,20 +184,13 @@
     hors <- utils::head(ok[!ok$gelive & ok$hors_aide & ok$rank < limite, , drop = FALSE], top_n)
     locale <- utils::head(ok[!ok$gelive & !ok$hors_aide & !is.na(ok$thermophilie) &
                                ok$thermophilie < .THERMOPHILIE_MEDITERRANEENNE, , drop = FALSE], 1)
-    if (nrow(garde)) garde$rank <- seq_len(nrow(garde)) else garde <- df[1, , drop = FALSE][NA_integer_, , drop = FALSE]
+    if (nrow(garde)) garde$rank <- seq_len(nrow(garde)) else {
+      garde <- df[1, , drop = FALSE][NA_integer_, , drop = FALSE]
+      # Toutes les essences classees tombent au froid : on le dit.
+      if (nrow(ok) && all(ok$gelive)) garde$limiting_factor <- "froid_hiver"
+    }
     if (!nrow(ok)) garde <- df[1, , drop = FALSE]
     garde$ug_id <- id
-    if (!is.null(exclus) && nrow(exclus)) {
-      # Exclues par le filtre du coeur : absentes du classement, sans note.
-      e <- exclus[exclus$ug_id == id, , drop = FALSE]
-      k <- match(e$species_code, traits$code)
-      ecartees <- data.frame(ug_id = as.character(e$ug_id), species_code = as.character(e$species_code),
-                             label = if ("label" %in% names(traits)) as.character(traits$label[k]) else as.character(e$species_code),
-                             suitability = rep(NA_real_, nrow(e)),
-                             tenue_froid_c = suppressWarnings(as.numeric(traits$frost_winter_min_c[k])),
-                             stringsAsFactors = FALSE)
-      ecartees <- ecartees[order(ecartees$tenue_froid_c, decreasing = TRUE), , drop = FALSE]
-    }
     list(garde = garde, ecartees = ecartees, hors_aide = hors, locale = locale)
   })
   pile <- function(k) { x <- lapply(parts, `[[`, k); if (length(x)) do.call(rbind, x) else vide }
@@ -209,9 +219,8 @@
   if (is.null(ecartees) || !nrow(ecartees)) return(NULL)
   e <- ecartees[ecartees$ug_id == id, , drop = FALSE]
   if (!nrow(e)) return(NULL)
-  lapply(seq_len(nrow(e)), function(i) Filter(Negate(is.null), list(code = e$species_code[i], nom = e$label[i],
-    aptitude = if (is.na(e$suitability[i])) NULL else round(as.numeric(e$suitability[i]), 1),
-    tenue_froid_c = e$tenue_froid_c[i])))
+  lapply(seq_len(nrow(e)), function(i) list(code = e$species_code[i], nom = e$label[i],
+    aptitude = round(as.numeric(e$suitability[i]), 1), tenue_froid_c = e$tenue_froid_c[i]))
 }
 
 # Essences d'une UGF classees plus haut mais non eligibles en objectif aux
@@ -234,26 +243,165 @@
        facteur_limitant = l$limiting_factor[1], thermophilie = l$thermophilie[1])
 }
 
-# Minimum decennal d'hiver (degres C) par UGF, calcule par le coeur
+# Minimum decennal d'hiver (degres C) par UGF. Le calcul du coeur
 # (`nemeton::regen_tmin_decennale()` : 10e percentile des minimums annuels
-# E-OBS TN 1991-2020, ~15 min la premiere fois, fichier KNMI ~5 Go mis en
-# cache machine) puis garde dans cache/regeneration/tmin_decennale.rds pour ne
-# pas le refaire. NULL si le calcul echoue ou ne rend rien (E-OBS
-# indisponible) : le classement est alors rendu sans filtre, et le dit.
-.tmin_decennale_projet <- function(u, dossier, calcul = function(x) nemeton::regen_tmin_decennale(x)) {
-  f <- file.path(dossier, "tmin_decennale.rds")
-  ids <- as.character(u$ug_id)
+# E-OBS TN 1991-2020, ~15 min, fichier KNMI ~5 Go) est LONG : `regen_essences`
+# ne le lance jamais, il lit le cache `cache/regeneration/tmin_decennale.rds`.
+# Le calcul se lance par l'outil `lancer_froid_hiver` (tache de fond detachee,
+# comme lancer_calcul de nemetonshiny, mais son propre fichier d'etat
+# `tmin_decennale_job.json` : les types de job de nemetonshiny sont fixes).
+.FROID_CACHE <- "tmin_decennale.rds"
+.FROID_JOB <- "tmin_decennale_job.json"
+
+# Cache complet pour `ids`, sinon NULL. Pure, testee.
+.froid_lire <- function(dossier, ids) {
+  f <- file.path(dossier, .FROID_CACHE)
   lu <- if (file.exists(f)) tryCatch(readRDS(f), error = function(e) NULL)
   if (is.data.frame(lu) && all(c("ug_id", "tmin_decennale") %in% names(lu)) && all(ids %in% lu$ug_id) &&
-      !anyNA(lu$tmin_decennale[match(ids, lu$ug_id)])) return(lu)
-  r <- tryCatch(suppressWarnings(calcul(u)), error = function(e) NULL)
-  if (is.null(r) || !"tmin_decennale" %in% names(r) || all(is.na(r$tmin_decennale))) return(NULL)
-  out <- data.frame(ug_id = ids, tmin_decennale = as.numeric(r$tmin_decennale),
-                    n_annees = if ("tmin_decennale_n_annees" %in% names(r)) as.integer(r$tmin_decennale_n_annees) else NA_integer_,
-                    stringsAsFactors = FALSE)
-  # Cache complet seulement : un resultat partiel serait relu a tort.
-  if (!anyNA(out$tmin_decennale)) tryCatch(saveRDS(out, f), error = function(e) NULL)
-  out
+      !anyNA(lu$tmin_decennale[match(ids, lu$ug_id)])) lu
+}
+
+.froid_job <- function(dossier) {
+  f <- file.path(dossier, .FROID_JOB)
+  if (file.exists(f)) tryCatch(jsonlite::fromJSON(f, simplifyVector = FALSE), error = function(e) NULL)
+}
+
+.froid_ecrire <- function(dossier, job) {
+  dir.create(dossier, recursive = TRUE, showWarnings = FALSE)
+  tmp <- tempfile(tmpdir = dossier)
+  jsonlite::write_json(job, tmp, auto_unbox = TRUE, null = "null")
+  file.rename(tmp, file.path(dossier, .FROID_JOB))
+  invisible(job)
+}
+
+.froid_maintenant <- function() format(Sys.time(), "%Y-%m-%dT%H:%M:%S")
+
+# Le job tourne-t-il encore ? Processus vivant ; sans pid (lancement), moins
+# de deux minutes. Pure (pid injectable), testee.
+.froid_actif <- function(job, vivant = function(pid) isTRUE(tryCatch(tools::pskill(pid, 0L), error = function(e) FALSE)),
+                         maintenant = Sys.time()) {
+  if (is.null(job) || !identical(job$statut, "en_cours")) return(FALSE)
+  pid <- suppressWarnings(as.integer(job$pid %||% NA))
+  if (!is.na(pid)) return(vivant(pid))
+  debut <- suppressWarnings(as.POSIXct(job$lance_a, format = "%Y-%m-%dT%H:%M:%S"))
+  !is.na(debut) && as.numeric(difftime(maintenant, debut, units = "secs")) < 120
+}
+
+# Le minimum decennal du projet, ou une erreur claire : jamais de classement
+# sans filtre froid (un Pin d'Alep en tete a Couchey). Pure, testee.
+.froid_exiger <- function(dossier, ids) {
+  lu <- .froid_lire(dossier, ids)
+  if (!is.null(lu)) return(lu)
+  job <- .froid_job(dossier)
+  if (.froid_actif(job)) {
+    depuis <- job$lance_a
+    .abort(c("Froid d'hiver : minimum décennal en cours de calcul (depuis {depuis}), classement non rendu.",
+             i = "Réessayer dans quelques minutes."), "nemetonmcp_froid_en_cours")
+  }
+  if (identical(job$statut, "echec")) {
+    cause <- job$erreur %||% "cause inconnue"
+    .abort(c("Froid d'hiver indisponible, classement non rendu.", x = "{cause}",
+             i = "Relancer lancer_froid_hiver quand E-OBS répond."), "nemetonmcp_froid_indisponible")
+  }
+  .abort(c("Froid d'hiver non calculé pour ce projet, classement non rendu.",
+           i = "Lancer lancer_froid_hiver (tâche de fond, environ 15 minutes la première fois), puis réessayer."),
+         "nemetonmcp_froid_absent")
+}
+
+# Corps de la tache de fond (Rscript detache) : calcule, ecrit le cache
+# seulement s'il est complet, tient le fichier d'etat a jour. `calcul`
+# injectable pour les tests.
+.tache_froid <- function(dossier, job_id, calcul = function(x) nemeton::regen_tmin_decennale(x)) {
+  maj <- function(...) {
+    j <- .froid_job(dossier) %||% list(job_id = job_id)
+    if (!identical(j$job_id, job_id)) return(invisible(NULL))
+    nv <- list(...)
+    j[names(nv)] <- nv
+    .froid_ecrire(dossier, j)
+  }
+  maj(pid = Sys.getpid())
+  avertissements <- character()
+  u <- .unites_regen(dossier)
+  r <- withCallingHandlers(tryCatch(calcul(u), error = function(e) e),
+    warning = function(w) { avertissements <<- c(avertissements, conditionMessage(w)); invokeRestart("muffleWarning") })
+  ids <- as.character(u$ug_id)
+  if (inherits(r, "error")) {
+    return(invisible(maj(statut = "echec", erreur = conditionMessage(r), fin_a = .froid_maintenant())))
+  }
+  v <- if ("tmin_decennale" %in% names(r)) as.numeric(r$tmin_decennale) else rep(NA_real_, length(ids))
+  if (anyNA(v)) {
+    cause <- paste(c("minimum décennal incomplet (E-OBS indisponible ?)", utils::head(avertissements, 2)), collapse = " : ")
+    return(invisible(maj(statut = "echec", erreur = cause, fin_a = .froid_maintenant())))
+  }
+  saveRDS(data.frame(ug_id = ids, tmin_decennale = v,
+                     n_annees = if ("tmin_decennale_n_annees" %in% names(r)) as.integer(r$tmin_decennale_n_annees) else NA_integer_,
+                     stringsAsFactors = FALSE), file.path(dossier, .FROID_CACHE))
+  invisible(maj(statut = "termine", fin_a = .froid_maintenant()))
+}
+
+# Lance la tache detachee (comme nemetonshiny:::.mcp_spawn).
+.froid_spawn <- function(dossier, job_id, log) {
+  expr <- sprintf("nemetonmcp:::.tache_froid(%s, %s)", deparse(dossier), deparse(job_id))
+  rscript <- file.path(R.home("bin"), "Rscript")
+  if (nzchar(Sys.which("setsid"))) {
+    system2("setsid", c("-f", shQuote(rscript), "-e", shQuote(expr)), stdout = log, stderr = log, wait = FALSE)
+  } else {
+    system2(rscript, c("-e", shQuote(expr)), stdout = log, stderr = log, wait = FALSE)
+  }
+  invisible(TRUE)
+}
+
+# Demande de calcul : deja fait, deja en cours, ou lance. Pure hors `spawn`
+# (injectable), testee.
+.froid_lancer <- function(id, dossier, ids, spawn = .froid_spawn) {
+  if (!is.null(.froid_lire(dossier, ids))) {
+    return(list(projet = id, statut = "termine", message = "Minimum décennal déjà calculé : regen_essences peut classer."))
+  }
+  job <- .froid_job(dossier)
+  if (.froid_actif(job)) {
+    return(list(projet = id, job_id = job$job_id, statut = "en_cours", lance_a = job$lance_a, log = job$log,
+                message = "Calcul déjà en cours ; réessayer regen_essences dans quelques minutes."))
+  }
+  log <- file.path(dossier, "tmin_decennale.log")
+  job <- list(job_id = paste0(format(Sys.time(), "%Y%m%d%H%M%S"), "-", paste0(sample(letters, 4), collapse = "")),
+              type = "tmin_decennale", statut = "en_cours", lance_a = .froid_maintenant(), log = log)
+  .froid_ecrire(dossier, job)
+  tryCatch(spawn(dossier, job$job_id, log), error = function(e) {
+    .froid_ecrire(dossier, utils::modifyList(job, list(statut = "echec", erreur = conditionMessage(e), fin_a = .froid_maintenant())))
+    stop(e)
+  })
+  list(projet = id, job_id = job$job_id, statut = "en_cours", log = log,
+       message = "Minimum décennal lancé en tâche de fond (environ 15 minutes la première fois) ; réessayer regen_essences ensuite, qui dit où en est le calcul.")
+}
+
+#' Start the winter-cold computation of a project (background job)
+#'
+#' The ten-year winter minimum per unit (`nemeton::regen_tmin_decennale()`,
+#' E-OBS 1991-2020) takes about 15 minutes the first time, so
+#' [regen_essences()] never computes it: it reads the cache and fails with a
+#' clear error when it is missing. This tool starts the computation in a
+#' detached background process and keeps its state in
+#' `cache/regeneration/tmin_decennale_job.json`; the result is cached in
+#' `cache/regeneration/tmin_decennale.rds`. Already computed or already
+#' running: it says so and starts nothing.
+#'
+#' @param projet Project id or name.
+#' @param langue `"fr"` or `"en"`.
+#' @return JSON: `statut` (`termine`, `en_cours`), `job_id`, `log`, `message`.
+#' @export
+lancer_froid_hiver <- function(projet, langue = "fr") {
+  .mcp_call(langue = langue, {
+    id <- .resoudre_projet(projet)
+    chemin <- .ns("get_project_path")(id)
+    dossier <- file.path(chemin, "cache", "regeneration")
+    u <- .unites_regen(dossier)
+    if (is.null(u) || !nrow(u)) {
+      .abort(c("Projet {.val {id}} : aucune analyse de régénération en cache.",
+               i = "La lancer dans nemetonshiny, onglet Régénération (url_app)."),
+             "nemetonmcp_regeneration_absente")
+    }
+    .froid_lancer(id, dossier, as.character(u$ug_id))
+  })
 }
 
 # Avertissements a rendre a l'utilisateur (nemeton 2026.11.32-33) : d_tmax
@@ -359,16 +507,23 @@
 #' conditions, the ranking of nemetonshiny's reGeneration tab), fed with the
 #' outputs the regeneration analysis cached in the project
 #' (`cache/regeneration/`: heat and VPD, soil water balance, late frost).
-#' Nothing is recomputed: without an analysis, the error
-#' `nemetonmcp_regeneration_absente` says how to run it. The shade axis is
-#' left out (the engine's LAI is not kept on disk); invasive species are
-#' excluded. Site conditions come from the observed climate (not a
-#' projection). Winter cold is an elimination filter of the core: the ten-year
-#' minimum per unit (`nemeton::regen_tmin_decennale()`, E-OBS 1991-2020, about
-#' 15 minutes the first time, then kept in the project) is passed to
+#' Read-only: nothing is recomputed and nothing is written. Without a
+#' regeneration analysis the error `nemetonmcp_regeneration_absente` says how to
+#' run it in nemetonshiny. The shade axis is left out (the engine's LAI is not
+#' kept on disk); invasive species are excluded. Site conditions come from the
+#' observed climate (not a projection).
+#'
+#' Winter cold is an elimination filter of the core: the ten-year minimum per
+#' unit (`nemeton::regen_tmin_decennale()`, E-OBS 1991-2020) is passed to
 #' `regen_rank_species()`, which does not rank a species less hardy than it;
-#' those are in `ecartees_froid` (`attr(, "exclus_froid")`). If the minimum
-#' cannot be computed, the ranking is given without the filter and says so.
+#' those are in `ecartees_froid` (from `attr(, "exclus_froid")`). That minimum
+#' takes about 15 minutes to compute, so it is read from the project cache
+#' (`cache/regeneration/tmin_decennale.rds`) and never computed here: when it
+#' is missing, still running or failed (E-OBS unavailable), the call fails
+#' with `nemetonmcp_froid_absent`, `nemetonmcp_froid_en_cours` or
+#' `nemetonmcp_froid_indisponible` and no ranking is given. Start the
+#' computation with [lancer_froid_hiver()].
+#'
 #' The heat axis is the one corrected in nemeton 2026.11.33; `avertissements`
 #' flags a negative `d_tmax`, late frost on two springs, and that
 #' `confiance` is about the species traits, not the site. The best
@@ -387,9 +542,13 @@
 #'   T max, soil water minimum, frost days, and its ranked species with
 #'   suitability 0-100, limiting factor and confidence), `tete` (species
 #'   first in the most units), `facteurs`, `texte`, `methode`, `climat`
-#'   (observed summers, hot summer, ERA5 winter minimum, late-frost years,
-#'   ten-year winter minimum), `avertissements`, `source`. Per unit, `ecartees_froid` and
-#'   `non_mediterraneenne` when relevant.
+#'   (observed summers, hot summer, late-frost years; `seuil_decennal_c` and
+#'   `tmin_decennale_c` = median and range of the ten-year winter minimum, the
+#'   cold filter; `tmin_hiver_c`, `annees_hiver` and `seuil_froid_c` = ERA5
+#'   winter minimum and its threshold, DEPRECATED and informative only),
+#'   `avertissements`, `source`. Per unit, `ecartees_froid` (with `aptitude`,
+#'   the suitability the species would have had) and `non_mediterraneenne` when
+#'   relevant.
 #' @export
 regen_essences <- function(projet, ug = NULL, top_n = 3, aides = TRUE, langue = "fr") {
   .mcp_call(langue = langue, {
@@ -408,30 +567,33 @@ regen_essences <- function(projet, ug = NULL, top_n = 3, aides = TRUE, langue = 
     refs <- if (!is.null(geo)) as.character(geo$cadastral_refs)[match(u$ug_id, as.character(geo$ug_id))]
     labels <- if (!is.null(geo)) as.character(geo$label)[match(u$ug_id, as.character(geo$ug_id))] else u$ug_id
     u$label <- .identites_ug(u$ug_id, labels, refs)$label
+    # Minimum decennal de TOUTES les UGF, lu avant le choix d'une UGF : un appel
+    # avec `ug` ne touche pas au cache du projet. Absent ou en echec : erreur.
+    froid <- .froid_exiger(dossier, u$ug_id)
     climat <- .climat_regen(dossier, u)
     u <- u[.choisir_ug(ug, u$ug_id, u$label), ]
-    # Froid d'hiver : minimum decennal par UGF (coeur, garde dans le projet),
-    # puis le coeur ecarte lui-meme les essences qui ne le tiennent pas. Tout
-    # le pool est classe avant de garder top_n.
-    froid <- .tmin_decennale_projet(u, dossier)
-    if (!is.null(froid)) u$tmin_decennale <- froid$tmin_decennale[match(u$ug_id, froid$ug_id)]
-    rang <- nemeton::regen_rank_species(u, top_n = 1000L, region = "BFC")
-    seuil <- if (is.null(froid)) NULL else stats::median(u$tmin_decennale, na.rm = TRUE)
+    u$tmin_decennale <- froid$tmin_decennale[match(u$ug_id, froid$ug_id)]
+    # Classement complet SANS filtre (pour la note des essences ecartees), et
+    # avec : le coeur ecarte les essences moins rustiques que le minimum
+    # decennal (`exclus_froid`). top_n s'applique apres.
+    tol <- nemeton::european_species_tolerances()
+    rang <- nemeton::regen_rank_species(u[, setdiff(names(u), "tmin_decennale")], top_n = 1000L, region = "BFC")
+    exclus <- attr(nemeton::regen_rank_species(u, top_n = 1000L, region = "BFC"), "exclus_froid")
+    seuil <- stats::median(u$tmin_decennale, na.rm = TRUE)
     aides <- !isFALSE(as.logical(aides))
-    filtre <- .filtrer_froid(rang, nemeton::european_species_tolerances(), NULL, top_n, aides,
-                             exclus = attr(rang, "exclus_froid"))
+    filtre <- .filtrer_froid(rang, tol, NULL, top_n, aides, exclus = exclus)
     nom <- tryCatch(nemetonshiny::projet_etat(id)$nom, error = function(e) NULL) %||% id
     s <- .synthese_essences(filtre$rang, sf::st_drop_geometry(u), nom, langue, filtre$ecartees,
                             filtre$locale, climat, seuil, filtre$hors_aide)
     tx <- .TEXTES_REGEN[[langue]]
     if (aides) s$methode <- paste0(s$methode, tx$methode_aides)
     avert <- .avertissements_regen(sf::st_drop_geometry(u), climat, langue)
-    if (is.null(froid)) s$texte <- paste0(s$texte, tx$froid_absent)
     if (length(avert)) s$texte <- paste0(s$texte, " ", paste(avert, collapse = " "))
     c(list(projet = id, nom = nom, n_ugf = nrow(u), top_n = top_n), s,
       list(avertissements = if (length(avert)) as.list(avert),
-           climat = c(climat, list(seuil_froid_c = seuil,
-                                   tmin_decennale_c = if (!is.null(froid)) round(range(u$tmin_decennale, na.rm = TRUE), 1))),
+           climat = c(climat, list(seuil_froid_c = min(.FROID_REFERENCE_C, climat$tmin_hiver_c %||% Inf),
+                                   seuil_decennal_c = round(seuil, 1),
+                                   tmin_decennale_c = round(range(u$tmin_decennale, na.rm = TRUE), 1))),
            aides = list(filtre = aides, region = "Bourgogne-Franche-Comt\u00e9", arrete = .MFR_BFC$arrete, url = .MFR_BFC$url),
            source = list(dossier = "cache/regeneration",
                          date = format(file.mtime(file.path(dossier, "sensibilite.gpkg")), "%Y-%m-%d"))))

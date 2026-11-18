@@ -26,9 +26,13 @@ JSON: \code{ugf} (per unit: identity, priority, sensitivity, summer
 T max, soil water minimum, frost days, and its ranked species with
 suitability 0-100, limiting factor and confidence), \code{tete} (species
 first in the most units), \code{facteurs}, \code{texte}, \code{methode}, \code{climat}
-(observed summers, hot summer, ERA5 winter minimum, late-frost years,
-ten-year winter minimum), \code{avertissements}, \code{source}. Per unit, \code{ecartees_froid} and
-\code{non_mediterraneenne} when relevant.
+(observed summers, hot summer, late-frost years; \code{seuil_decennal_c} and
+\code{tmin_decennale_c} = median and range of the ten-year winter minimum, the
+cold filter; \code{tmin_hiver_c}, \code{annees_hiver} and \code{seuil_froid_c} = ERA5
+winter minimum and its threshold, DEPRECATED and informative only),
+\code{avertissements}, \code{source}. Per unit, \code{ecartees_froid} (with \code{aptitude},
+the suitability the species would have had) and \code{non_mediterraneenne} when
+relevant.
 }
 \description{
 Deterministic ranking from the nemeton core
@@ -36,16 +40,24 @@ Deterministic ranking from the nemeton core
 conditions, the ranking of nemetonshiny's reGeneration tab), fed with the
 outputs the regeneration analysis cached in the project
 (\verb{cache/regeneration/}: heat and VPD, soil water balance, late frost).
-Nothing is recomputed: without an analysis, the error
-\code{nemetonmcp_regeneration_absente} says how to run it. The shade axis is
-left out (the engine's LAI is not kept on disk); invasive species are
-excluded. Site conditions come from the observed climate (not a
-projection). Winter cold is an elimination filter of the core: the ten-year
-minimum per unit (\code{nemeton::regen_tmin_decennale()}, E-OBS 1991-2020, about
-15 minutes the first time, then kept in the project) is passed to
+Read-only: nothing is recomputed and nothing is written. Without a
+regeneration analysis the error \code{nemetonmcp_regeneration_absente} says how to
+run it in nemetonshiny. The shade axis is left out (the engine's LAI is not
+kept on disk); invasive species are excluded. Site conditions come from the
+observed climate (not a projection).
+}
+\details{
+Winter cold is an elimination filter of the core: the ten-year minimum per
+unit (\code{nemeton::regen_tmin_decennale()}, E-OBS 1991-2020) is passed to
 \code{regen_rank_species()}, which does not rank a species less hardy than it;
-those are in \code{ecartees_froid} (\code{attr(, "exclus_froid")}). If the minimum
-cannot be computed, the ranking is given without the filter and says so.
+those are in \code{ecartees_froid} (from \code{attr(, "exclus_froid")}). That minimum
+takes about 15 minutes to compute, so it is read from the project cache
+(\code{cache/regeneration/tmin_decennale.rds}) and never computed here: when it
+is missing, still running or failed (E-OBS unavailable), the call fails
+with \code{nemetonmcp_froid_absent}, \code{nemetonmcp_froid_en_cours} or
+\code{nemetonmcp_froid_indisponible} and no ranking is given. Start the
+computation with \code{\link[=lancer_froid_hiver]{lancer_froid_hiver()}}.
+
 The heat axis is the one corrected in nemeton 2026.11.33; \code{avertissements}
 flags a negative \code{d_tmax}, late frost on two springs, and that
 \code{confiance} is about the species traits, not the site. The best

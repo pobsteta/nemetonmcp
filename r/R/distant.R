@@ -81,7 +81,8 @@ config_distant <- function(url = .env_mcp("URL"),
 .OUTILS_ECRITURE <- c("creer_projet", "lancer_calcul", "annuler_calcul",
                       "generer_rapport", "exporter_gpkg",
                       "ajouter_action", "modifier_action", "supprimer_action",
-                      "exporter_marculus", "appliquer_ugf", "croiser_onf")
+                      "exporter_marculus", "appliquer_ugf", "croiser_onf",
+                      "lancer_froid_hiver")
 .OUTILS_LECTURE <- c("lister_projets", "resume_projet", "etat_calcul", "url_app",
                      "chercher_commune", "parcelles_commune", "vue_atlas",
                      "contexte_carto", "detail_indicateur", "fiche_projet",
