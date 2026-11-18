@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.13 (2026-11-18)
+
+- nemeton 2026.11.32-34 : froid d'hiver du cœur, W1 sources, avertissement microclimf (briefs 2026-11-16, mission 017) (#38)
+
 # nemetonmcp 2026.11.12 (2026-11-18)
 
 - Test de contrat nemeton → nemetonmcp (mission 016) (#37)
