@@ -1,3 +1,7 @@
+# nemetonmcp 2026.11.12 (2026-11-18)
+
+- Test de contrat nemeton → nemetonmcp (mission 016) (#37)
+
 # nemetonmcp 2026.11.11 (2026-11-16)
 
 - chore(claude): plugin imperatrice et commande de tests versionnée (#36)
