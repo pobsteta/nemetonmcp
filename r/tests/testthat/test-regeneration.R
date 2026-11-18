@@ -93,7 +93,7 @@ test_that(".synthese_essences dit le froid, la base climatique et l'essence non 
   expect_equal(s$ugf[[1]]$ecartees_froid[[1]]$nom, "Pin d'Alep")
   expect_equal(s$ugf[[1]]$non_mediterraneenne$nom, "Hêtre")
   expect_equal(s$texte, paste0("Couchey, UGF 1 : Chêne vert (49/100, limité par la chaleur).",
-    " Écartées pour le froid d'hiver (seuil -15 °C) : Pin d'Alep (tient -12 °C).",
+    " Écartées pour le froid d'hiver (minimum décennal -15 °C) : Pin d'Alep (tient -12 °C).",
     " Meilleure essence non méditerranéenne : Hêtre (38/100).",
     " Station : climat observé (étés 2022-2023, Tmax sous couvert de l'été 2022, retenu comme caniculaire), pas une projection."))
   inconnu <- .synthese_essences(f$rang[f$rang$ug_id == "a", ], ugs, "Couchey", climat = list(annees_ete = integer()))
@@ -113,7 +113,7 @@ test_that(".climat_regen lit les annees d'ete et du gel tardif dans le cache", {
   expect_equal(c1$annees_ete, c(2022L, 2023L))
   expect_equal(c1$annee_canicule, 2022L)
   expect_equal(c1$annees_gel_tardif, c(2022L, 2023L))
-  expect_null(c1$tmin_hiver_c)
+  expect_null(c1$tmin_hiver_c) # le froid vient du minimum decennal du coeur, plus d'ERA5 local
   expect_false(c1$projection)
 })
 
@@ -155,4 +155,70 @@ test_that(".filtrer_froid avec aides ne classe que les essences objectif et list
                           hors_aide = f$hors_aide)
   expect_equal(s$ugf[[1]]$essences[[1]]$aides_bfc, "objectif")
   expect_match(s$texte, "non éligibles en essence objectif aux aides de l'État en Bourgogne-Franche-Comté : Chêne vert \\(hors liste\\)\\.$")
+})
+
+test_that(".filtrer_froid sans seuil rend les essences exclues par le coeur comme ecartees", {
+  # Le coeur a deja retire le Pin d'Alep du classement (attr exclus_froid).
+  rl <- rang_long[rang_long$species_code %in% c("qi", "fs", "qp") | is.na(rang_long$species_code), ]
+  rl$rank[rl$ug_id == "a"] <- 1:3
+  excl <- data.frame(ug_id = "a", species_code = "pa", stringsAsFactors = FALSE)
+  tr <- traits_fictifs
+  tr$label <- c("Pin d'Alep", "Chêne vert", "Hêtre", "Chêne sessile")
+  f <- .filtrer_froid(rl, tr, NULL, 2, exclus = excl)
+  expect_equal(f$rang$species_code[f$rang$ug_id == "a"], c("qi", "fs"))
+  expect_equal(f$ecartees$species_code, "pa")
+  expect_equal(f$ecartees$label, "Pin d'Alep")
+  expect_equal(f$ecartees$tenue_froid_c, -12)
+  s <- .synthese_essences(f$rang[f$rang$ug_id == "a", ], data.frame(ug_id = "a", label = "UGF 1"), "Couchey",
+                          "fr", f$ecartees, f$locale, NULL, -13.2)
+  expect_equal(s$ugf[[1]]$ecartees_froid[[1]], list(code = "pa", nom = "Pin d'Alep", tenue_froid_c = -12))
+  expect_match(s$texte, "minimum décennal -13 °C\\) : Pin d'Alep \\(tient -12 °C\\)")
+})
+
+test_that("une UGF dont toutes les essences sont exclues par le froid le dit", {
+  rl <- data.frame(ug_id = "a", rank = NA_integer_, species_code = NA_character_, label = NA_character_,
+                   type = NA, suitability = NA_real_, limiting_factor = "froid_hiver", confidence = NA_character_,
+                   invasif = NA, stringsAsFactors = FALSE)
+  excl <- data.frame(ug_id = "a", species_code = c("pa", "qi"), stringsAsFactors = FALSE)
+  tr <- traits_fictifs
+  tr$label <- c("Pin d'Alep", "Chêne vert", "Hêtre", "Chêne sessile")
+  f <- .filtrer_froid(rl, tr, NULL, 2, exclus = excl)
+  expect_true(is.na(f$rang$rank))
+  s <- .synthese_essences(f$rang, data.frame(ug_id = "a", label = "UGF 1"), "Couchey", "fr", f$ecartees, f$locale, NULL, -20)
+  expect_match(s$texte, "aucune essence ne tient le froid d'hiver de l'UGF")
+  expect_match(s$texte, "Pin d'Alep \\(tient -12 °C\\)")
+})
+
+test_that(".tmin_decennale_projet calcule une fois, garde le resultat, et rend NULL sans E-OBS", {
+  d <- withr::local_tempdir()
+  u <- data.frame(ug_id = c("a", "b"))
+  appels <- 0L
+  calcul <- function(x) { appels <<- appels + 1L; x$tmin_decennale <- c(-13.2, -11); x$tmin_decennale_n_annees <- 30L; x }
+  r1 <- .tmin_decennale_projet(u, d, calcul)
+  expect_equal(r1$tmin_decennale, c(-13.2, -11))
+  expect_true(file.exists(file.path(d, "tmin_decennale.rds")))
+  r2 <- .tmin_decennale_projet(u, d, calcul)
+  expect_equal(r2$tmin_decennale, c(-13.2, -11))
+  expect_equal(appels, 1L)
+  # Une UGF de plus : recalcul.
+  .tmin_decennale_projet(data.frame(ug_id = c("a", "b", "c")), d, function(x) { appels <<- appels + 1L; x$tmin_decennale <- c(1, 2, 3); x })
+  expect_equal(appels, 2L)
+  # E-OBS indisponible : le coeur rend NA, ou echoue.
+  d2 <- withr::local_tempdir()
+  expect_null(.tmin_decennale_projet(u, d2, function(x) { x$tmin_decennale <- NA_real_; x }))
+  expect_null(.tmin_decennale_projet(u, d2, function(x) stop("pas de reseau")))
+  expect_false(file.exists(file.path(d2, "tmin_decennale.rds")))
+})
+
+test_that(".avertissements_regen signale d_tmax negatif, gel sur deux printemps et le sens de confiance", {
+  u <- data.frame(d_tmax = c(1.5, -0.5, -2), r7_gel_days = c(0, 2, NA))
+  a <- .avertissements_regen(u, list(annees_gel_tardif = c(2022L, 2023L)))
+  expect_length(a, 3L)
+  expect_match(a[1], "^d_tmax est négatif dans 2 UGF")
+  expect_match(a[2], "Gel tardif \\(r7_gel_days\\) fondé sur 2 printemps")
+  expect_match(a[3], "traits de l'essence")
+  # Pas de d_tmax negatif, gel sur plus de deux printemps : seule la confiance.
+  b <- .avertissements_regen(data.frame(d_tmax = 1, r7_gel_days = 1), list(annees_gel_tardif = 2019:2023), "en")
+  expect_length(b, 1L)
+  expect_match(b, "species traits")
 })

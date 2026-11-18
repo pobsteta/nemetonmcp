@@ -27,7 +27,7 @@ T max, soil water minimum, frost days, and its ranked species with
 suitability 0-100, limiting factor and confidence), \code{tete} (species
 first in the most units), \code{facteurs}, \code{texte}, \code{methode}, \code{climat}
 (observed summers, hot summer, ERA5 winter minimum, late-frost years,
-cold threshold), \code{source}. Per unit, \code{ecartees_froid} and
+ten-year winter minimum), \code{avertissements}, \code{source}. Per unit, \code{ecartees_froid} and
 \code{non_mediterraneenne} when relevant.
 }
 \description{
@@ -40,7 +40,14 @@ Nothing is recomputed: without an analysis, the error
 \code{nemetonmcp_regeneration_absente} says how to run it. The shade axis is
 left out (the engine's LAI is not kept on disk); invasive species are
 excluded. Site conditions come from the observed climate (not a
-projection); species that cannot stand the colder of -15 degrees C and the
-observed ERA5 winter minimum are set aside (\code{ecartees_froid}), and the best
+projection). Winter cold is an elimination filter of the core: the ten-year
+minimum per unit (\code{nemeton::regen_tmin_decennale()}, E-OBS 1991-2020, about
+15 minutes the first time, then kept in the project) is passed to
+\code{regen_rank_species()}, which does not rank a species less hardy than it;
+those are in \code{ecartees_froid} (\code{attr(, "exclus_froid")}). If the minimum
+cannot be computed, the ranking is given without the filter and says so.
+The heat axis is the one corrected in nemeton 2026.11.33; \code{avertissements}
+flags a negative \code{d_tmax}, late frost on two springs, and that
+\code{confiance} is about the species traits, not the site. The best
 non-Mediterranean species is given when it is not in the ranking.
 }

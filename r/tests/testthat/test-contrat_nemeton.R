@@ -2,7 +2,7 @@
 #
 # ## Ce que nemetonmcp lit dans nemeton
 #
-# `nemetonmcp` appelle 12 fonctions exportees du coeur `nemeton` (toujours en
+# `nemetonmcp` appelle 13 fonctions exportees du coeur `nemeton` (toujours en
 # `nemeton::nom()`, declare dans `Imports` de r/DESCRIPTION), et lit des
 # colonnes dans deux tables qu'il rend :
 #
@@ -10,7 +10,8 @@
 #   -----------------  -------------------------------------------  ----------------------------
 #   R/atlas.R          get_famille_col, list_indicators,            colonne d'une famille ;
 #                      normalize_indicator                          codes d'indicateurs (character)
-#   R/regeneration.R   regen_rank_species, european_species_        classement long (8 colonnes) ;
+#   R/regeneration.R   regen_rank_species, regen_tmin_decennale,    classement long (8 colonnes) +
+#                      european_species_                            attr exclus_froid ;
 #                      tolerances                                   traits (code, frost_winter_min_c,
 #                                                                   thermophily)
 #   R/connaissances.R  db_connect, db_disconnect,                   -
@@ -43,6 +44,8 @@
   regen_rank_species          = c("units", "species_pool", "top_n", "weights", "exclude_invasive",
                                   "region", "cover_col", "lai_col", "extinction_k", "id_col",
                                   "include_atlas", "..."),
+  regen_tmin_decennale        = c("units", "tn", "years", "prob", "source", "cache_dir", "version",
+                                  "progress_callback"),
   european_species_tolerances = c("statut", "confiance", "type", "include_invasif"),
   retrieve_knowledge          = c("con", "query", "top_k", "family_codes", "profile_codes",
                                   "min_similarity", "lang", "embed_provider", "api_key"),
@@ -78,8 +81,8 @@
 
 .contrat_nemeton_noms <- function() names(.contrat_nemeton_fonctions)
 
-test_that("le contrat nemeton compte 12 fonctions, sans doublon", {
-  expect_length(.contrat_nemeton_noms(), 12L)
+test_that("le contrat nemeton compte 13 fonctions, sans doublon", {
+  expect_length(.contrat_nemeton_noms(), 13L)
   expect_false(anyDuplicated(.contrat_nemeton_noms()) > 0L)
 })
 
@@ -167,4 +170,20 @@ test_that("nemetonmcp n'appelle aucune fonction de nemeton hors contrat", {
   expect_setequal(setdiff(appelles, .contrat_nemeton_noms()), character())
   # Et la table ne garde pas d'objet que le code n'appelle plus.
   expect_setequal(intersect(.contrat_nemeton_noms(), appelles), .contrat_nemeton_noms())
+})
+
+test_that("regen_rank_species() ecarte par le froid et expose attr exclus_froid (nemeton 2026.11.32)", {
+  sq <- function(x) sf::st_polygon(list(rbind(c(x, 6685000), c(x + 100, 6685000), c(x + 100, 6685100),
+                                              c(x, 6685100), c(x, 6685000))))
+  u <- sf::st_sf(ug_id = "a", tmax_moyenne = 30, d_tmax = 1, vpd_canicule = 2, rew_min = 0.3,
+                 tmin_decennale = -30,
+                 geometry = sf::st_sfc(sq(843000), crs = 2154))
+  rk <- nemeton::regen_rank_species(u, top_n = 1000L, region = "BFC")
+  ex <- attr(rk, "exclus_froid")
+  expect_s3_class(ex, "data.frame")
+  expect_true(all(c("ug_id", "species_code") %in% names(ex)))
+  tol <- nemeton::european_species_tolerances()
+  # Aucune essence classee n'est moins rustique que le minimum decennal.
+  ok <- rk$species_code[!is.na(rk$rank)]
+  expect_true(all(tol$frost_winter_min_c[match(ok, tol$code)] <= -30, na.rm = TRUE))
 })
